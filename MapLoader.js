@@ -5,6 +5,10 @@ var MapLoader = function() {
 
 MapLoader.prototype = Object.create(EventHandler.prototype);
 
+MapLoader.prototype.derefTempObjects = function() {
+	this.rsmAtlasObject = null;
+};
+
 MapLoader.prototype.reset = function() {
 	
 	this.rswFileObject = null;
@@ -22,9 +26,70 @@ MapLoader.prototype.reset = function() {
 	
 	this.running = false;
 	
-	this.mouse = new THREE.Vector3(0, 0, 1);
-	this.mousePickingInterval = null;
+	this.mouse3 = new THREE.Vector3(0, 0, 1);
+	this.mouse2 = new THREE.Vector2(0, 0);
+	
+	this.mousePickingInterval = 30;
+	this.mousePickingIntervalKey = null;
 	this.mouseGatPosition = new THREE.Vector2(0, 0);
+	
+	this.colorPickingInterval = 1000 / 10;
+	this.colorPickingFocusObjectId = 0;
+	
+	this._worldComponents = {};
+	
+	this._worldComponents[MapLoader.WorldMesh.GROUND] = null;
+	this._worldComponents[MapLoader.WorldMesh.WATER] = null;
+	this._worldComponents[MapLoader.WorldMesh.MODEL] = [];
+	
+	this.entities = new Map();
+	this.entityMap = new Map();
+	
+};
+
+MapLoader.WorldMesh = {
+	GROUND: 0,
+	WATER: 1,
+	MODEL: 2,
+	COORDPOINTER: 3
+};
+
+MapLoader.prototype.registerWorldComponent = function(type, mesh) {
+
+	if(type == MapLoader.WorldMesh.MODEL) {
+		console.warn("REGISTERING COMPONENT", mesh);
+		this._worldComponents[type].push(mesh);
+	} else {
+		this._worldComponents[type] = mesh;
+	}
+	
+};
+
+MapLoader.prototype.setWorldComponentDisplay = function(type, value) {
+	
+	if(type == MapLoader.WorldMesh.MODEL) {
+		for(var i = 0; i < this._worldComponents[type].length; i++) {
+			if(this._worldComponents[type][i] instanceof THREE.Object3D) 
+				this._worldComponents[type][i].visible = value;
+		}
+	} else {
+		if(this._worldComponents[type] instanceof THREE.Object3D) 
+			this._worldComponents[type].visible = value;
+	}
+};
+
+MapLoader.prototype.setWorldDisplay = function(value) {
+	for(var i in MapLoader.WorldMesh) {
+		this.setWorldComponentDisplay(MapLoader.WorldMesh[i], value);
+	}
+};
+
+MapLoader.prototype.hideWorldComponent = function(type) {
+	this.setWorldComponentDisplay(type, false);
+};
+
+MapLoader.prototype.showWorldComponent = function(type) {
+	this.setWorldComponentDisplay(type, true);
 };
 
 MapLoader.prototype.loadRsw = function(rswBufferObject) {
@@ -472,8 +537,6 @@ MapLoader.prototype.setupModelTextures = function() {
 			this.saveAtlasToDisk(textureNameList);
 		}
 		
-		this.rsmAtlasObject.textures = null;
-		
 	}).bind(this));
 
 };
@@ -706,23 +769,29 @@ MapLoader.prototype.createGround = function() {
 		
 	var mesh = new THREE.Mesh(groundGeometry, new THREE.MeshFaceMaterial(materials));
 	
-	this.scene.add(new THREE.Mesh(waterGeometry, new THREE.MeshBasicMaterial({
+	var waterMesh = new THREE.Mesh(waterGeometry, new THREE.MeshBasicMaterial({
 		//map: ResourceLoader.getTexture("¿öÅÍ/water" + this.rswFileObject.header.waterType + "01.jpg"),
 		map: ResourceLoader.getTexture(decodeURIComponent("%C2%BF%C3%B6%C3%85%C3%8D") + "/water" + this.rswFileObject.header.waterType + "01.jpg"),
 		//color: 0x0000ff,
 		transparent: true,
 		opacity: 0.7
-	})));
+	}));
+	
 	
 	/*var mesh = new THREE.Mesh(groundGeometry, new THREE.MeshBasicMaterial({
 		//wireframe: true,
 		//color: 0xff0000
 	}));*/
 	
+	this.registerWorldComponent(MapLoader.WorldMesh.GROUND, mesh);
+	this.registerWorldComponent(MapLoader.WorldMesh.WATER, waterMesh);
+	
 	// Add GND to scene
 	this.scene.add( mesh );
+	this.scene.add(waterMesh);
 	
 };
+
 
 MapLoader.prototype.createCoordinatePointer = function() {
 
@@ -805,9 +874,11 @@ MapLoader.prototype.createCoordinatePointer = function() {
 		side: THREE.DoubleSide
 	}));
 
+	this.registerWorldComponent(MapLoader.WorldMesh.COORDPOINTER, this.coordinatePointer);
+
 };
 
-//MapLoader.prototype.
+MapLoader.FogFarLimit = 1200;
 
 MapLoader.prototype.setupWorldLighting = function() {
 	
@@ -852,6 +923,22 @@ MapLoader.prototype.setupWorldLighting = function() {
 	
 	this.scene.add(directionalLight);
 	
+	// Fog
+		
+	if(this.getMapName() in FogParameterTable) {
+		
+		console.log("Info: Adding fog ...");
+		
+		var fogParam = FogParameterTable[this.getMapName()];
+		
+		this.fogFar = fogParam[1] * MapLoader.FogFarLimit;
+		this.fogNear = fogParam[0] * MapLoader.FogFarLimit;
+		
+		this.scene.fog = new THREE.Fog( fogParam[2], this.fogNear, this.fogFar );
+		//scene.fog = new THREE.FogExp2( 0x660000, 0.0003 * 0xff / 255 );
+		
+	}
+	
 	//var directionalLight = new THREE.DirectionalLight(0xffffff);
     //directionalLight.position.set(1, 1, 1).normalize();
     //this.scene.add(directionalLight);
@@ -859,28 +946,28 @@ MapLoader.prototype.setupWorldLighting = function() {
 	
 };
 
-var BBox = function() {
+var BoundingBox = function() {
 	this.max = new THREE.Vector3(-9999, -9999, -9999);
 	this.min = new THREE.Vector3(9999, 9999, 9999);
 };
 
-BBox.prototype.setMax = function(v) {
+BoundingBox.prototype.setMax = function(v) {
 	this.max.max(v);
 };
 
-BBox.prototype.setMin = function(v) {
+BoundingBox.prototype.setMin = function(v) {
 	this.min.min(v);
 };
 
-BBox.prototype.__defineGetter__("offset", function() {
+BoundingBox.prototype.__defineGetter__("offset", function() {
 	return this.max.clone().add(this.min).divideScalar(2);
 });
 
-BBox.prototype.__defineGetter__("range", function() {
+BoundingBox.prototype.__defineGetter__("range", function() {
 	return this.max.clone().sub(this.min).divideScalar(2);
 });
 
-BBox.prototype.__defineGetter__("center", function() {
+BoundingBox.prototype.__defineGetter__("center", function() {
 	return this.min.clone().add(this.range);
 });
 
@@ -933,7 +1020,7 @@ MapLoader.prototype.rsmMeshNodeCalculateBoundingBox = function(rsmNode, base_mat
 	
 	rsmNode.localMatrix = matrix.clone();
 	
-	var box = new BBox();
+	var box = new BoundingBox();
 	
 	for(var i = 0; i < rsmNode.vertices.length; i++) {
 		
@@ -958,7 +1045,7 @@ MapLoader.prototype.rsmMeshNodeCalculateBoundingBox = function(rsmNode, base_mat
 
 MapLoader.prototype.rsmMeshCalculateBoundingBox = function(rsmFile) {
 	
-	var box = new BBox();
+	var box = new BoundingBox();
 	
 	// Calcualte all the bounding boxes of all nodes
 	this.rsmMeshNodeCalculateBoundingBox(rsmFile.mainNode, new THREE.Matrix4);
@@ -972,9 +1059,9 @@ MapLoader.prototype.rsmMeshCalculateBoundingBox = function(rsmFile) {
 	
 	rsmFile.box = box;
 	
-	if(rsmFile.box.max.x < -1000 || rsmFile.box.min.x > 1000) {
-		console.warn("Strange bounding box?", rsmFile.box);
-	}
+	//if(rsmFile.box.max.x < -1000 || rsmFile.box.min.x > 1000) {
+	//	console.warn("Strange bounding box?", rsmFile.box);
+	//}
 	
 }
 
@@ -1337,10 +1424,14 @@ MapLoader.prototype.setupModels = function() {
 	/* Use for smooth shading */
 	//this.staticResourceGeometry.computeVertexNormals();
 	
-	this.scene.add(new THREE.Mesh(
+	var rsModelStaticMesh = new THREE.Mesh(
 		this.staticResourceGeometry, 
 		new THREE.MeshFaceMaterial(this.rsmAtlasObject.materials)
-	));
+	);
+	
+	this.registerWorldComponent(MapLoader.WorldMesh.MODEL, rsModelStaticMesh);
+	
+	this.scene.add(rsModelStaticMesh);
 	
 	if(MapLoader.DEBUG.DisplayBoundingBox) {
 		this.scene.add(new THREE.Mesh(
@@ -1390,28 +1481,32 @@ MapLoader.prototype.setupScene = function() {
 	
 	var scene = this.scene = new THREE.Scene();
 	
-	//var viewAngle = 45;
-	//var viewAngle = -340;
-	var viewAngle = 20;
-	
-	var camera = this.camera = new THREE.PerspectiveCamera( viewAngle, width / height, 0.1, 10000 );
+	var camera = this.camera = new THREE.PerspectiveCamera( MapLoader.CameraFOV, width / height, 0.1, 10000 );
 	
 	renderer.setClearColor(0x000000);
 	
 	renderer.setSize(width, height);
 	
+	// Target for color picking
+	this.colorPickingRenderTarget = new THREE.WebGLRenderTarget(width, height);
+	this.colorPickingRenderTarget.generateMipmaps = false;
+	
+	// Little helper!
 	var a = new THREE.AxisHelper();
-	
 	a.scale = new THREE.Vector3(100, 100, 100);
-	
 	scene.add(a);
 	
 };
 
 
 MapLoader.prototype.setMousePosition = function(x, y) {
-	this.mouse.x = x;
-	this.mouse.y = y;
+
+	this.mouse2.x = x;
+	this.mouse2.y = y;
+
+	this.mouse3.x = (x / this.renderer.domElement.width) * 2 - 1;
+	this.mouse3.y = -(y / this.renderer.domElement.height) * 2 + 1;
+
 };
 
 
@@ -1454,7 +1549,30 @@ MapLoader.prototype.getGatTileLightLevel = function(x, y) {
 	return this.gndFileObject.getTileLightLevel(gnd_x, gnd_y);
 };
 
-MapLoader.entityMap = new Map();
+MapLoader.prototype.registerEntity = function(id, entity) {
+
+	if(this.entities.has(entity)) {
+		console.warn("MapLoader: Attempt to re-register entity");
+		return false;
+	}
+	
+	this.entities.set(id, entity);
+	
+};
+
+MapLoader.prototype.getEntity = function(id) {
+	
+	return this.entities.get(id);
+	
+};
+
+MapLoader.prototype.releaseEntity = function(id) {
+
+	// TODO remove from entity map
+
+	return this.entities.delete(id);
+
+};
 
 MapLoader.prototype.updateEntityGatPosition = function(obj, x, y, lastX, lastY) {
 	
@@ -1466,26 +1584,26 @@ MapLoader.prototype.updateEntityGatPosition = function(obj, x, y, lastX, lastY) 
 	var id = 'x' + x + 'y' + y;
 	var lid = 'x' + lastX + 'y' + lastY;
 	
-	if(MapLoader.entityMap.has(lid)) {
-		var objs = MapLoader.entityMap.get(lid);
+	if(this.entityMap.has(lid)) {
+		var objs = this.entityMap.get(lid);
 		var idx = objs.indexOf(obj);
 		if(idx > -1) {
 			objs.splice(idx, 1);
 			// Is this needed?
-			MapLoader.entityMap.set(lid, objs);
+			this.entityMap.set(lid, objs);
 		}
 	}
 	
-	if(MapLoader.entityMap.has(id)) {
-		var objs = MapLoader.entityMap.get(id);
+	if(this.entityMap.has(id)) {
+		var objs = this.entityMap.get(id);
 		var idx = objs.indexOf(obj);
 		if(idx < 0) {
 			objs.push(obj);
-			MapLoader.entityMap.set(id, objs);
+			this.entityMap.set(id, objs);
 		}
 	} else {
 		var objs = [obj];
-		MapLoader.entityMap.set(id, objs);
+		this.entityMap.set(id, objs);
 	}
 	
 };
@@ -1497,12 +1615,26 @@ MapLoader.prototype.getEntitiesGatPosition = function(x, y) {
 	
 	var id = 'x' + x + 'y' + y;
 
-	if(MapLoader.entityMap.has(id)) {
-		return MapLoader.entityMap.get(id);
+	if(this.entityMap.has(id)) {
+		return this.entityMap.get(id);
 	}
 	
 	return null;
 };
+
+MapLoader.CameraFOV = 15;
+
+MapLoader.CameraDistanceZ = 182;
+MapLoader.CameraDistanceXYRatio = 0.99;
+
+MapLoader.CameraDistanceXYZRatio = MapLoader.CameraDistanceZ / MapLoader.CameraDistanceXYRatio;
+
+MapLoader.CTargetShiftMin = 0.9;
+MapLoader.CTargetShiftMax = 1.55;
+
+MapLoader.CLerpRatio = 0.06;
+
+MapLoader.CCameraScrollSensitivity = 0.5;
 
 MapLoader.prototype.setCameraPosition = function() {
 	
@@ -1510,21 +1642,13 @@ MapLoader.prototype.setCameraPosition = function() {
 	
 	var pos = this.cCameraPosition;
 	
-	var distance_z = 150;
-	var distance_xy = 50;
-	
-	//console.log(this.cShift);
-	
-	//var h = this.cShift * distance_z - this.cHeight;
-	var h = this.cShift * distance_z + pos.y;
+	var h = this.cShift * MapLoader.CameraDistanceZ;
 	
 	this.camera.position = new THREE.Vector3(
-		pos.x + h / 1.2 * Math.cos(this.cRotation),
-		h,
-		pos.z + h / 1.2 * Math.sin(this.cRotation)
+		pos.x + h / MapLoader.CameraDistanceXYRatio * Math.cos(this.cRotation),
+		h  + pos.y,
+		pos.z + h / MapLoader.CameraDistanceXYRatio * Math.sin(this.cRotation)
 	);
-	
-	//this.camera.rotation.z = 0;
 	
 	this.camera.lookAt(pos);
 	
@@ -1546,11 +1670,11 @@ MapLoader.prototype.start = function() {
 	this.cRotate = false;
 	this.cRotation = Math.PI/2;
 	this.cRotationSpeed = 0;
-	this.cShift = 1.0;
+	this.cShift = MapLoader.CTargetShiftMin;
 	this.cTargetShift = 1.0;
 	this.cLastPos = null;
 	
-	this.cDeltaCutoff = 0.001;
+	this.cDeltaCutoff = 0.0025;
 	
 	var startX = 10 * this.gatFileObject.width / 2 << 0;
 	var startY = 10 * this.gatFileObject.height / 2 << 0;
@@ -1575,55 +1699,80 @@ MapLoader.prototype.start = function() {
 		return false;
 	}
 	
-	this.CRotDampening = 0.92;
+	this.CRotDampening = 0.85;
 	this.CRotAcceleration = 0.15;
 	
-	setInterval((function() {
+	
+	var cameraUpdate = (function(dt) {
 	
 		if(this.cCameraTarget) {
+		
+			var dr = dt / 10;
 		
 			this.cTargetHeight = -this.gatFileObject.getBlockAvgDepth(this.cCameraTarget.gatPosition.x, this.cCameraTarget.gatPosition.y);
 			
 			//this.cHeight += (this.cTargetHeight - this.cHeight) * 0.05;
-			this.cRotationSpeed *= this.CRotDampening;
-			this.cRotation += this.cRotationSpeed;
+			this.cRotationSpeed = this.CRotDampening * this.cRotationSpeed;
+			this.cRotation += dr * this.cRotationSpeed;
 			
-			var cPosXDt = (this.cTargetPosition.x - this.cCameraPosition.x) * 0.12;
-			var cPosYDt = (this.cTargetHeight - this.cCameraPosition.y) * 0.12;
-			var cPosZDt = (this.cTargetPosition.z - this.cCameraPosition.z) * 0.12;
+			var cPosXDt = (this.cTargetPosition.x - this.cCameraPosition.x) * MapLoader.CLerpRatio;
+			var cPosYDt = (this.cTargetHeight - this.cCameraPosition.y) * MapLoader.CLerpRatio;
+			var cPosZDt = (this.cTargetPosition.z - this.cCameraPosition.z) * MapLoader.CLerpRatio;
 			
-			this.cCameraPosition.x += Math.abs(cPosXDt) > 2 * this.cDeltaCutoff ? cPosXDt : 0;
-			//this.cCameraPosition.x = 100;
-			this.cCameraPosition.y += Math.abs(cPosYDt) > 2 * this.cDeltaCutoff ? cPosYDt : 0;
-			//this.cCameraPosition.y = 200;
-			this.cCameraPosition.z += Math.abs(cPosZDt) > 2 * this.cDeltaCutoff ? cPosZDt : 0;
-			//this.cCameraPosition.z = 0;
+			this.cCameraPosition.x += Math.abs(cPosXDt) > this.cDeltaCutoff ? dr * cPosXDt : 0;
+			this.cCameraPosition.y += Math.abs(cPosYDt) > this.cDeltaCutoff ? dr * cPosYDt : 0;
+			this.cCameraPosition.z += Math.abs(cPosZDt) > this.cDeltaCutoff ? dr * cPosZDt : 0;
 			
-			this.cTargetShift = Math.max(0.5, Math.min(1.90, this.cTargetShift));
-			var cShiftDt = (this.cTargetShift - this.cShift) * 0.12;
-			this.cShift += Math.abs(cShiftDt) > this.cDeltaCutoff ? cShiftDt : 0;
+			this.cTargetShift = Math.max(
+				MapLoader.CTargetShiftMin, 
+				Math.min(
+					MapLoader.CTargetShiftMax, 
+					this.cTargetShift
+				)
+			);
+			
+			cameraUpdate
+						
+			var cShiftDt = (this.cTargetShift - this.cShift) * MapLoader.CLerpRatio;
+			this.cShift += Math.abs(cShiftDt) > this.cDeltaCutoff ? dr * cShiftDt : 0;
 			
 			
 			this.updateCameraPosition();
 		}
 	
-	}).bind(this), 10);
+	}).bind(this);
+	
 //}//if-false
 	
 	
 	window.addEventListener('mousewheel', (function(e) {
 		
-		this.cTargetShift -= e.wheelDeltaY / this.renderer.domElement.height;
+		this.cTargetShift += MapLoader.CCameraScrollSensitivity * e.wheelDeltaY / this.renderer.domElement.height;
 		
 	}).bind(this))
 	
+	var focusEntityId = -1;
+	
 	window.addEventListener('mousemove', (function(e) {
 	
-		this.setMousePosition(
-			(e.clientX / this.renderer.domElement.width) * 2 - 1, 
-			-(e.clientY / this.renderer.domElement.height) * 2 + 1
-		);
-	
+		this.setMousePosition(e.clientX, e.clientY);
+		
+		if(this.colorPickingFocusObjectId > 0) {
+			
+			var entity = this.getEntity(this.colorPickingFocusObjectId);
+			
+			entity.showNameLabel();
+			
+			if(focusEntityId > 0 && focusEntityId != this.colorPickingFocusObjectId) {
+				this.getEntity(focusEntityId).hideNameLabel();
+			}
+			
+			focusEntityId = this.colorPickingFocusObjectId;
+			
+		} else if(focusEntityId > 0) {
+			this.getEntity(focusEntityId).hideNameLabel();
+		}
+		
 		if(!this.cLastPos) {
 			this.cLastPos = new THREE.Vector2(e.clientX, e.clientY);
 		} else {
@@ -1634,7 +1783,11 @@ MapLoader.prototype.start = function() {
 			if(this.cRotate) {
 				
 				if(e.shiftKey) {
-					this.cShift += 2 * delta.y / this.renderer.domElement.height;
+					//this.cShift += 2 * delta.y / this.renderer.domElement.height;
+					MapLoader.CameraDistanceXYRatio += 0.5 * delta.y / this.renderer.domElement.height;
+					MapLoader.CameraDistanceZ = MapLoader.CameraDistanceXYRatio * MapLoader.CameraDistanceXYZRatio;
+					
+					//MapLoader.CameraDistanceXYZRatio = MapLoader.CameraDistanceZ / MapLoader.CameraDistanceXYRatio;
 				}
 				
 				//this.cRotation += 2 * Math.PI * delta.x / this.renderer.domElement.width;
@@ -1657,17 +1810,26 @@ MapLoader.prototype.start = function() {
 
 	window.addEventListener('mousedown', (function(e) {
 		
-		if(e.button == 0) {			
+		if(e.button == 0) {
+		
+			// Clicking on a SpriteActor
+			if(this.colorPickingFocusObjectId > 0) {
+				console.log(this.colorPickingFocusObjectId);
+				return;
+			}
+		
 			console.log(this.mouseGatPosition.x, this.mouseGatPosition.y, this.gatFileObject.getBlock(this.mouseGatPosition.x, this.mouseGatPosition.y).type);
 			
 			//this.setCameraPosition(this.mouseGatPosition.x, this.mouseGatPosition.y);
 			//this.updateCameraPosition();
 			
-			if(e.shiftKey) {
+			if(false && e.shiftKey) {
 				// change position
 				//this.cTargetPosition.x = this.mouseGatPosition.x;
 				//this.cTargetPosition.y = this.mouseGatPosition.y;
 				//this.cTargetHeight = this.gatFileObject.getBlockAvgDepth(this.cTargetPosition.x, this.cTargetPosition.y);
+				
+				// List entities in 5*5 area
 				
 				for(var x = -5; x <= 5; x++) {
 					for(var y = -5; y <= 5; y++) {
@@ -1688,7 +1850,15 @@ MapLoader.prototype.start = function() {
 					}
 					
 					//console.log("Light: " + this.getGatTileLightLevel(this.mouseGatPosition.x, this.mouseGatPosition.y));
-					this.cCameraTarget.MoveToGatPosition(this.mouseGatPosition.x, this.mouseGatPosition.y);
+					
+					if(e.shiftKey) {
+						// Teleport
+						this.cCameraTarget.SetGatPosition(this.mouseGatPosition.x, this.mouseGatPosition.y);
+					} else {
+						// Walk to position
+						this.cCameraTarget.MoveToGatPosition(this.mouseGatPosition.x, this.mouseGatPosition.y);
+					}
+					
 				}
 			}
 			
@@ -1715,10 +1885,10 @@ MapLoader.prototype.start = function() {
 	
 	// Start the mouse picking
 	
-	this.mousePickingInterval = setInterval((function() {
+	this.mousePickingIntervalKey = setInterval((function() {
 		
-		direction.x = this.mouse.x;
-		direction.y = this.mouse.y;
+		direction.x = this.mouse3.x;
+		direction.y = this.mouse3.y;
 		direction.z = 1.0;
 		
 		projector.unprojectVector(direction, this.camera);
@@ -1732,7 +1902,7 @@ MapLoader.prototype.start = function() {
 		var unit = ray.direction;
 		
 		// Max test iterations
-		var max = 500;
+		var max = 500 * this.cShift;
 		
         var cx = -1;
         var cz = -1;
@@ -1827,7 +1997,7 @@ MapLoader.prototype.start = function() {
 			//coordPointer.geometry.verticesNeedUpdate = true;
 		 }
 		
-	}).bind(this), 30);
+	}).bind(this), this.mousePickingInterval);
 	
 	
 	// Add camera
@@ -1837,6 +2007,9 @@ MapLoader.prototype.start = function() {
 	
 	// Start the animation loop
 	
+	var lastColorPick = Date.now();
+	var colorPick = true;
+	
 	(function animate() {
 		
 		var now = Date.now()
@@ -1845,7 +2018,45 @@ MapLoader.prototype.start = function() {
 		last = now;
 		
 		if(ref.running) {
+			
+			cameraUpdate(dt);
+			
 			ref.renderer.render(ref.scene, ref.camera);
+			
+			if(colorPick && now - lastColorPick >= ref.colorPickingInterval) {
+			
+				//console.log("color picking");
+			
+				mapLoader.setWorldDisplay(false); // hide all world objects
+				THREE.Sprite.PickingMode = 1; // uuugh -_-"
+				
+				var gl = ref.renderer.getContext();
+				
+				ref.renderer.render(ref.scene, ref.camera, ref.colorPickingRenderTarget);
+				
+				var u32 = new Uint8Array(4);
+				
+				// #ICEICE PICK
+				gl.readPixels(
+					ref.mouse2.x, 
+					ref.colorPickingRenderTarget.height - ref.mouse2.y,
+					1, 1, 
+					gl.RGBA, 
+					gl.UNSIGNED_BYTE, 
+					u32
+				);
+				
+				var id = (u32[0] << 16) | (u32[1] << 8) | (u32[2]);
+				
+				ref.colorPickingFocusObjectId = id;
+				
+				mapLoader.setWorldDisplay(true); // restore world objects
+				THREE.Sprite.PickingMode = 0;
+				
+				lastColorPick = now;
+			}
+			
+			
 			requestAnimationFrame(animate);
 		}
 		
@@ -1858,8 +2069,8 @@ MapLoader.prototype.stop = function() {
 	// Stop running the animation loop
 	this.running = false;
 	
-	if(this.mousePickingInterval)
-		clearInterval(this.mousePickingInterval);
+	if(this.mousePickingIntervalKey)
+		clearInterval(this.mousePickingIntervalKey);
 	
 	document.body.removeChild(this.renderer.domElement);
 	
@@ -1888,6 +2099,29 @@ function Tick(msg, id) {
 
 Tick.time = [];
 
+MapLoader.prototype._setFogFar = function(value) {
+	if(!this.scene || !this.scene.fog) {
+		return false;
+	}
+	this.scene.fog.far = value;
+	return true;
+};
+
+MapLoader.prototype.fogOn = function() {
+	return this._setFogFar(this.fogFar);
+};
+
+MapLoader.prototype.fogOff = function() {
+	return this._setFogFar(2e32); // far, far away!
+};
+
+MapLoader.prototype.__defineGetter__("screen", function() {
+	return {
+		width: this.renderer.domElement.width,
+		height: this.renderer.domElement.height
+	};
+});
+
 MapLoader.prototype.loadMap = function(worldResourceName) {
 	
 	this.setupScene();
@@ -1905,7 +2139,10 @@ MapLoader.prototype.loadMap = function(worldResourceName) {
 	var loadFilePipe = Deferred();
 	var loadBranchMerge = Deferred();
 	
+	var LOAD_RSM = true;
+	
 	// Start loading RSW
+	
 	var rswContentPipe = loadFilePipe.then(ResourceLoader.getRsw(worldResourceName).then(
 		(function(data) {
 			console.log("Loaded RSW");
@@ -1930,6 +2167,9 @@ MapLoader.prototype.loadMap = function(worldResourceName) {
 	));
 	
 	// On RSW loaded
+	
+	if(LOAD_RSM) {
+	
 	var rsmContentPipe = rswContentPipe
 		.then((function() {
 	
@@ -1953,6 +2193,7 @@ MapLoader.prototype.loadMap = function(worldResourceName) {
 						})(this, name)
 					);
 				}
+				
 			}
 			
 			rsmLoader.finally(function() {
@@ -1964,20 +2205,29 @@ MapLoader.prototype.loadMap = function(worldResourceName) {
 			
 		}).bind(this))
 		
+	}
+	
 	// On RSW, GND and GAT loaded, branch in
 	loadBranchMerge.then(
-		loadFilePipe.finally((function() {
-			// Setup ground, water, lights, etc
-			this.setupWorld();
+		loadFilePipe.finally(this.setupWorld.bind(this))
+		.then((function() {
+			if(LOAD_RSM) {
+				return Deferred()
+					.then(rsmContentPipe)
+					.then(this.setupModelTextures.bind(this))
+					.then(this.setupModels.bind(this))
+			}
 		}).bind(this))
-		.then(rsmContentPipe)
-		.then(this.setupModelTextures.bind(this))
-		.then(this.setupModels.bind(this))
 	);
 	
 	loadBranchMerge.finally((function() {
+		
 		// Render once to finalize scene in THREE.js
 		this.renderer.render(this.scene, this.camera);
+		
+		// Clear any loading data here
+		this.derefTempObjects();
+		
 		loadPromise.success();
 	}).bind(this));
 	

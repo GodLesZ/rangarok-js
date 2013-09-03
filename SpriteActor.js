@@ -1,4 +1,4 @@
-var SpriteActor = function(mapInstance) {
+var SpriteActor = function(mapInstance, name) {
 	
 	this.mapInstance = mapInstance;
 	
@@ -26,16 +26,33 @@ var SpriteActor = function(mapInstance) {
 	
 	this.lightLevel = 1.0;
 	
-	this.zGroup = SpriteActor.ZGROUPID++;
+	this.type = SpriteActor.Types.PLAYER;
+	
+	this.name = name || (function keyOf(obj, value) {
+		for(i in obj) {
+			if(obj[i] == value)
+				return i;
+		}
+		return null;
+	})(SpriteActor.Types, this.type) || "nil";
+	
+	this.zGroup = ++SpriteActor.ZGROUPID;
+	
+	this.mapInstance.registerEntity(this.zGroup, this);
+	this._nameLabelGenerated = false;
+	
 	
 };
 
-SpriteActor.ZGROUPID = 0;
+SpriteActor.CSpriteScale = 0.54857;
+
+SpriteActor.ZGROUPID = 200;
 
 SpriteActor.Types = {
 	MONSTER: 0,
 	PLAYER: 1,
-	ITEM: 2
+	NPC: 2,
+	ITEM: 3
 };
 
 // Monster actions
@@ -72,6 +89,24 @@ SpriteActor.Directions = {
 	NORTH_EAST: 5,
 	EAST: 6,
 	SOUTH_EAST: 7
+};
+
+SpriteActor.Attachment = {
+	SHADOW: 0,
+	BODY: 1,
+	HEAD: 2,
+	TOP: 3,
+	MID: 4,
+	BOTTOM: 5
+};
+
+SpriteActor.AttachmentPriority = {
+	0: 0, // SHADOW
+	1: 1, // BODY
+	2: 100, // HEAD
+	3: 400, // TOP
+	4: 300, // MID
+	5: 200, // BOTTOM
 };
 
 SpriteActor.prototype.__defineGetter__('Action', function() {
@@ -127,8 +162,17 @@ SpriteActor.prototype.__defineGetter__("gatPosition", function() {
 
 
 SpriteActor.prototype.SetGatPosition = function(x, y) {
+	
+	this.CancelMove();
 	this.gatPosition = new THREE.Vector2(x, y);
-	//getTileLightLevel
+};
+
+SpriteActor.prototype.CancelMove = function() {
+	if(this.isMoving) {
+		this._cancelMove = true;
+		return true;
+	}
+	return false;
 };
 
 SpriteActor.prototype.MoveToGatPosition = function(x, y) {
@@ -285,12 +329,18 @@ SpriteActor.prototype.UpdatePosition = function() {
 // A* path search
 SpriteActor.prototype.findPath = function(x0, y0, x1, y1) {
 
+	var gat = this.mapInstance.gatFileObject;
+	
+	// First check if destination is reachable
+	if(!gat.hasProperty(x1, y1, GAT.BlockProperties.WALKABLE))
+		return false;
+	
 	var h = function(node) {
 		//return ( Math.abs(x1 - node[0]) + Math.abs(y1 - node[1]) ) / 2;
-		return Math.sqrt( Math.pow(x1 - node[0], 2) + Math.pow(y1 - node[1], 2) );
+		var x2 = x1 - node[0];
+		var y2 = y1 - node[1];
+		return Math.sqrt( x2 * x2 + y2 * y2 );
 	}
-	
-	var gat = this.mapInstance.gatFileObject;
 	
 	var getNeighborNodes = function(x, y) {
 		
@@ -428,32 +478,18 @@ SpriteActor.prototype.findPath = function(x0, y0, x1, y1) {
 	
 };
 
-var SpriteActorAttachment = function(sprFileObject, actFileObject) {
+var SpriteActorAttachment = function(groupId, sprFileObject, actFileObject) {
 	
 	this.sprFileObject = sprFileObject;
 	this.actFileObject = actFileObject;
 	
-	var atlasObject = sprFileObject.getAtlasTextureRgba();
-	
-	this.texture = new THREE.DataTexture(
-		atlasObject.data, 
-		atlasObject.width, 
-		atlasObject.height, 
-		THREE.RGBAFormat,
-		THREE.UnsignedByteType,
-		{},
-		THREE.ClampToEdgeWrapping, 
-		THREE.ClampToEdgeWrapping, 
-		THREE.LinearFilter, 
-		THREE.LinearFilter
-	);
-		
-	this.texture.needsUpdate = true;
+	this.texture = this.sprFileObject.getAtlasTextureThreeJs();
 	
 	this.frameId = 0;
 	this.timeElapsed = 0;
 	this.nSpriteObjectsInScene = 0;
 	this.inScene = false;
+	this.groupId = groupId;
 	
 	var motionSet = this.actFileObject.actions;
 	var max = 0;
@@ -483,6 +519,10 @@ var SpriteActorAttachment = function(sprFileObject, actFileObject) {
 						//depthWrite: false
 					}));
 					
+					sprite.material.alphaTest = 0.5;
+					sprite.material.colorId = new THREE.Color(this.groupId);
+					sprite.material.fog = true;
+					
 					sprite.visible = false;
 					this.spriteObjectSet.push( sprite );
 					
@@ -504,7 +544,7 @@ SpriteActor.prototype.SetAttachment = function(attachmentType, sprFileObject, ac
 		this.RemoveAttachment(attachmentType);
 	}
 	
-	var attachment = new SpriteActorAttachment(sprFileObject, actFileObject);
+	var attachment = new SpriteActorAttachment(this.zGroup, sprFileObject, actFileObject);
 	
 	
 	this.attachments[attachmentType] = attachment;
@@ -513,7 +553,6 @@ SpriteActor.prototype.SetAttachment = function(attachmentType, sprFileObject, ac
 
 // Remove an existing attachment
 SpriteActor.prototype.RemoveAttachment = function(attachmentType) {
-	// TODO
 	
 	console.log("Removing attachment of type " + attachmentType);
 	
@@ -550,16 +589,16 @@ SpriteActor.prototype.removeAttachmentFromScene = function(scene, attachmentType
 	
 };
 
-SpriteActor.Attachment = {
-	BODY: 1,
-	HEAD: 2,
-	TOP: 3
-}
-
-SpriteActor.AttachmentPriority = {
-	1: 0,
-	2: 1000,
-	3: 2000
+SpriteActor.prototype.HideAttachment = function(attachmentType) {
+	
+	var attachment = this.getAttachment(attachmentType);
+	
+	attachment.nSpriteObjectsInScene = 0;
+	
+	for(var i = 0; i < attachment.spriteObjectSet.length; i++) {
+		attachment.spriteObjectSet[i].visible = false;
+	}
+	
 };
 
 SpriteActor.prototype.UpdateAttachment = function(deltaTime, attachmentType, motionFrame, offsetX, offsetY) {
@@ -568,13 +607,20 @@ SpriteActor.prototype.UpdateAttachment = function(deltaTime, attachmentType, mot
 	var actFileObject = attachment.actFileObject;
 	
 	// Number of frames in current motion
-	var nMotionFrames = actFileObject.actions[this.motion].length;
+	
+	var motion = 0;
+	
+	if(attachmentType != SpriteActor.Attachment.SHADOW) {
+		motion = this.motion;
+	}
+	
+	var nMotionFrames = actFileObject.actions[motion].length;
 	
 	// Ensure motion frame ID isn't out of bounds
 	attachment.frameId = motionFrame % nMotionFrames;
 	
 	// Sprite data for current motion frame
-	var motionSpriteData = actFileObject.actions[this.motion][attachment.frameId].sprites;
+	var motionSpriteData = actFileObject.actions[motion][attachment.frameId].sprites;
 	
 	// Set of THREE.Sprite objects
 	var spriteObjects = attachment.spriteObjectSet;
@@ -608,8 +654,8 @@ SpriteActor.prototype.UpdateAttachment = function(deltaTime, attachmentType, mot
 			// Display information for current SPR frame
 			var spriteData = attachment.sprFileObject[frameType][dispInfo.id];
 			
-			// TODO: Set z order to i + priority
-			spriteObject.zGroup = this.zGroup
+			// Set the drawing priority of this sprite object
+			spriteObject.zGroup = this.zGroup;
 			spriteObject.zIndex = i + SpriteActor.AttachmentPriority[attachmentType];
 			
 			// Set spriteObject
@@ -621,6 +667,11 @@ SpriteActor.prototype.UpdateAttachment = function(deltaTime, attachmentType, mot
 			spriteObject.material.color.r = this.lightLevel * dispInfo.color[0] / 255;
 			spriteObject.material.color.g = this.lightLevel * dispInfo.color[1] / 255;
 			spriteObject.material.color.b = this.lightLevel * dispInfo.color[2] / 255;
+			
+			//spriteObject.material.color.r = 1;
+			//spriteObject.material.color.g = 0;
+			//spriteObject.material.color.b = 0;
+			
 			spriteObject.material.opacity = dispInfo.color[3] / 255;
 			
 			var sx = dispInfo.scaleX * ( dispInfo.flipped ? -1 : 1 ) * spriteData.width;
@@ -632,9 +683,9 @@ SpriteActor.prototype.UpdateAttachment = function(deltaTime, attachmentType, mot
 			// Rotation^-1 * Scale^-1 * Translation
 			spriteObject.material.alignment.x = x * Math.cos(angle) / sx + y * Math.sin(angle) / sy;
 			spriteObject.material.alignment.y = y * Math.cos(angle) / sy - x * Math.sin(angle) / sx;
-			
-			spriteObject.scale.x = sx * 0.1428571492433548 * 2 * 1.6 ;// / 1.42;
-			spriteObject.scale.y = sy * 0.1428571492433548 * 2 * 1.6;// / 1.42;
+						
+			spriteObject.scale.x = sx * SpriteActor.CSpriteScale;
+			spriteObject.scale.y = sy * SpriteActor.CSpriteScale;
 			spriteObject.rotation = angle;
 			
 			spriteObject.visible = true;
@@ -654,7 +705,7 @@ SpriteActor.prototype.UpdateAttachment = function(deltaTime, attachmentType, mot
 	
 	// Check if we can update the current frame
 	
-	var delay 
+	var delay = 0;
 	
 	if(this.action == SpriteActor.Actions.WALK) {
 		delay = this.movementSpeed / actFileObject.delays[this.motion];
@@ -676,6 +727,11 @@ SpriteActor.prototype.getAttachment = function(attachmentType) {
 SpriteActor.prototype.hasAttachment = function(attachmentType) {
 	return this.attachments[attachmentType] instanceof SpriteActorAttachment;
 };
+
+// Check if the face of the character is hidden
+SpriteActor.prototype.__defineGetter__("faceObscured", function() {
+	return this.motionDirection >= 3 && this.motionDirection <= 5;
+});
 
 SpriteActor.prototype.Update = function(camera) {
 	
@@ -721,49 +777,307 @@ SpriteActor.prototype.Update = function(camera) {
 		? 0 // Why?
 		: this.attachments[SpriteActor.Attachment.BODY].frameId;
 	
-	var attachmentPointers = this.attachments[SpriteActor.Attachment.BODY]
-			.actFileObject.actions[this.motion][attachmentFrameId].attachmentPointers;
+	var attachmentPointers = this
+			.attachments[SpriteActor.Attachment.BODY]
+			.actFileObject
+			.actions[this.motion][attachmentFrameId]
+			.attachmentPointers;
 	
+	// Ground shadow
 	
-	//if(!attachmentPointers.length) {
-	//	console.log("Attachment pointer are empty!");
-	//}
-	
-	// Update HEAD attachment
-	if(this.hasAttachment(SpriteActor.Attachment.HEAD)) {
-		// Get the attachment pointer from BODY to HEAD
-		var bodyHeadAttachmentPointers = attachmentPointers[0];
-		// Get the attachment pointers of HEAD
-		var headAttachmentPointers = this.getAttachment(SpriteActor.Attachment.HEAD)
-			.actFileObject.actions[this.motion][this.lookingDirection].attachmentPointers[0];
+	if(this.hasAttachment(SpriteActor.Attachment.SHADOW)) {
 		this.UpdateAttachment(
 			dt,
-			SpriteActor.Attachment.HEAD, 
-			this.lookingDirection, 
-			bodyHeadAttachmentPointers.x - headAttachmentPointers.x, 
-			bodyHeadAttachmentPointers.y - headAttachmentPointers.y
+			SpriteActor.Attachment.SHADOW, 
+			0,
+			0.0, 
+			-1.0
 		);
 	}
 	
-	// Update TOP attachment
-	if(this.hasAttachment(SpriteActor.Attachment.TOP)) {
-		// Get the attachment pointer from BODY to HEAD
-		var bodyHeadAttachmentPointers = attachmentPointers[0];
-		// Get the attachment pointers of HEAD
-		var headAttachmentPointers = this.getAttachment(SpriteActor.Attachment.TOP)
-			.actFileObject.actions[this.motion][this.lookingDirection].attachmentPointers[0];
-		this.UpdateAttachment(
-			dt,
-			SpriteActor.Attachment.TOP, 
-			this.lookingDirection, 
-			bodyHeadAttachmentPointers.x - headAttachmentPointers.x, 
-			bodyHeadAttachmentPointers.y - headAttachmentPointers.y
-		);
+	// Head & headgear attachments
+	
+	var attachments = [SpriteActor.Attachment.HEAD, SpriteActor.Attachment.TOP, SpriteActor.Attachment.MID, SpriteActor.Attachment.BOTTOM];
+	
+	var bodyAttachmentOffset = attachmentPointers[0];
+	
+	for(var i = 0; i < attachments.length; i++) {
+	
+		var attachment = attachments[i];
+		
+		
+		if(this.hasAttachment(attachment)) {
+			
+			if(attachment == SpriteActor.Attachment.BOTTOM && this.faceObscured) {
+				// hide attachment from view
+				this.HideAttachment(attachment);
+				continue;
+			}
+			
+			var currentAttachmentOffset = this
+				.getAttachment(attachment)
+				.actFileObject
+				.actions[this.motion][this.lookingDirection]
+				.attachmentPointers[0];
+			
+			this.UpdateAttachment(
+				dt,
+				attachment, 
+				this.lookingDirection,
+				bodyAttachmentOffset.x - currentAttachmentOffset.x, 
+				bodyAttachmentOffset.y - currentAttachmentOffset.y
+			);
+		}
+	};
+	
+	var a;
+	
+	if(this.displayMessageSprite instanceof THREE.Sprite) {
+		
+		a = this.displayMessageSprite.material.alignment;
+		
+		a.y = SpriteActor.CMessageBoxAlignmentY / (this.mapInstance.cShift);
+		a.y += 20 * a.y * (0.03 - this.displayMessageSprite.scale.y);
+				
+		if(Date.now() - this.displayMessageCreationTime > SpriteActor.CMessageDuration) {
+			this.removeDisplayMessageLabel();
+		}
+		
 	}
 	
-	//this.getAttachment(SpriteActor.Attachment.BODY).frameId++;
-	
-	
+	if(this.nameLabelSprite instanceof THREE.Sprite && this.nameLabelSprite.visible) {
+		
+		/*if(Date.now() - this.nameLabelCreationTime > SpriteActor.CLabelTimeout) {
+			this.hideNameLabel();
+		}*/
+		
+		a = this.nameLabelSprite.material.alignment;
+		
+		a.y = SpriteActor.CLabelAlignmentY / (this.mapInstance.cShift);
+		a.y += 10 * a.y * (0.03 - this.nameLabelSprite.scale.y);
+		
+	}
+		
 	this.lastUpdate = Date.now();
+	
+};
+
+SpriteActor.CMessageBoxPadding = 12;
+SpriteActor.CMessageBoxAlpha = 1/3 + 1/9;
+
+SpriteActor.CMessageBoxAlignmentY = 28.0 - Settings.fontSize;
+
+SpriteActor.CMessageDuration = 5000;
+
+SpriteActor.CMessageColorDefault = new THREE.Color(0xffffff);
+SpriteActor.CMessageColorGM = new THREE.Color(0xffde00);
+
+SpriteActor.CLabelAlignmentY = 8.0 - Settings.fontSize;
+//SpriteActor.CLabelTimeout = 100;
+
+SpriteActor.CLabelFontOption = "bold";
+
+SpriteActor.CLabelColorPlayer = new THREE.Color(0xffffff);
+SpriteActor.CLabelColorNPC = new THREE.Color(0x94bdf7);
+SpriteActor.CLabelColorMonster = new THREE.Color(0x9c9c9c);
+SpriteActor.CLabelOutlineColor = new THREE.Color(0x000000);
+
+SpriteActor.prototype.generateNameLabel = function() {
+	
+	name = this.name || "unknown";
+	
+	this.nameLabelCreationTime = Date.now();
+
+	var textColor;
+	var strokeColor = SpriteActor.CLabelOutlineColor;
+	
+	switch(this.type) {
+		case SpriteActor.Types.NPC: 
+			textColor = SpriteActor.CLabelColorNPC;
+			break;
+		case SpriteActor.Types.MONSTER: 
+			textColor = SpriteActor.CLabelColorMonster;
+			break;
+		case SpriteActor.Types.PLAYER: 
+		default:
+			textColor = SpriteActor.CLabelColorPlayer;
+	}
+	
+	var canvas = window.document.createElement("canvas");
+	var ctx = canvas.getContext("2d");
+	
+	var textHeight = Settings.fontSize;
+	
+	var fontStyle = SpriteActor.CLabelFontOption + " " + textHeight + "pt " + Settings.fontFamily;
+	
+	ctx.font = fontStyle;
+	
+	var textWidth = ctx.measureText(name).width;
+	
+	canvas.width = textWidth + SpriteActor.CMessageBoxPadding;
+	canvas.height = 2 * textHeight;
+	
+	// setting canvas.width resets the font size ...
+	ctx.font = fontStyle;
+	
+	ctx.textAlign = "center";
+	ctx.textBaseline = "middle";
+	ctx.fillStyle = "#" + textColor.getHexString();
+	ctx.strokeStyle = "#" + strokeColor.getHexString();
+	ctx.lineWidth = 3;
+	
+	ctx.strokeText(name, canvas.width / 2 + 0.5, canvas.height / 2 + 0.5);
+	ctx.fillText(name, canvas.width / 2, canvas.height / 2);
+	
+	var texture = new THREE.Texture(canvas);
+	
+	texture.generateMipmaps = false;
+	texture.minFilter = THREE.LinearFilter;
+	texture.magFilter = THREE.LinearFilter;
+	
+	texture.needsUpdate = true;
+	
+	var material = new THREE.MeshBasicMaterial({
+		map: texture,
+		transparent: true
+	});
+	
+	var sprite = new THREE.Sprite(new THREE.SpriteMaterial({
+		map: texture,
+		useScreenCoordinates: false,
+		alignment: new THREE.Vector2,
+		transparent: true,
+		opacity: 1.0,
+		alphaTest: 0.5,
+	}));
+	
+	sprite.zIndex = 0;
+	sprite.zGroup = 1e10;
+	
+	sprite.material.alphaTest = 0.0;
+	
+	sprite.material.sizeAttenuation = false;
+	sprite.material.alignment.y = 999.0;
+	sprite.material.depthTest = false;
+	
+	sprite.scale.y = 0.9 * 0.03 * textHeight / 14 * ( 1080 / mapLoader.screen.height );
+	
+	sprite.scale.x = sprite.scale.y * canvas.width / canvas.height;
+		
+	sprite.position = this.position;
+	
+	sprite.visible = false;
+	
+	this.nameLabelSprite = sprite;
+	
+	this._nameLabelGenerated = true;
+	
+	this.mapInstance.scene.add(sprite);
+	
+};
+
+SpriteActor.prototype.showNameLabel = function() {
+	
+	if(!this._nameLabelGenerated)
+		this.generateNameLabel();
+	
+	this.nameLabelSprite.visible = true;
+};
+
+SpriteActor.prototype.hideNameLabel = function() {
+
+	if(!this._nameLabelGenerated)
+		return;
+
+	this.nameLabelSprite.visible = false;
+};
+
+SpriteActor.prototype.removeDisplayMessageLabel = function() {
+
+	if(this.displayMessageSprite instanceof THREE.Sprite) {
+		this.mapInstance.scene.remove(this.displayMessageSprite);
+	}
+	
+	this.displayMessageSprite = null;
+	this.displayMessageCreationTime = -1;
+
+};
+
+SpriteActor.prototype.displayMessageLabel = function(message) {
+
+	this.removeDisplayMessageLabel();
+
+	this.displayMessageCreationTime = Date.now();
+
+	var color = color || SpriteActor.CMessageColorDefault;
+	
+	var canvas = window.document.createElement("canvas");
+	var ctx = canvas.getContext("2d");
+	
+	var textHeight = Settings.fontSize;
+	
+	ctx.font = textHeight + "pt " + Settings.fontFamily;
+	
+	var textWidth = ctx.measureText(message).width;
+	
+	canvas.width = textWidth + SpriteActor.CMessageBoxPadding;
+	canvas.height = 2 * textHeight;
+	
+	// setting canvas.width resets the font size ...
+	ctx.font = textHeight + "pt " + Settings.fontFamily;
+	
+	ctx.globalAlpha = SpriteActor.CMessageBoxAlpha;
+	
+	ctx.fillStyle = "black";
+	ctx.fillRect(0, 0, canvas.width, canvas.height);
+	
+	ctx.globalAlpha = 1.0;
+	
+	ctx.textAlign = "center";
+	ctx.textBaseline = "middle";
+	ctx.fillStyle = "#" + color.getHexString();
+	ctx.strokeStyle = "#" + SpriteActor.CLabelOutlineColor.getHexString();
+	ctx.strokeText(message, canvas.width / 2, canvas.height / 2);
+	ctx.fillText(message, canvas.width / 2, canvas.height / 2);
+	
+	var texture = new THREE.Texture(canvas);
+	
+	texture.generateMipmaps = false;
+	texture.minFilter = THREE.LinearFilter;
+	texture.magFilter = THREE.LinearFilter;
+	
+	texture.needsUpdate = true;
+	
+	var material = new THREE.MeshBasicMaterial({
+		map: texture,
+		transparent: true
+	});
+	
+	var sprite = new THREE.Sprite(new THREE.SpriteMaterial({
+		map: texture,
+		useScreenCoordinates: false,
+		alignment: new THREE.Vector2,
+		transparent: true,
+		opacity: 1.0,
+		alphaTest: 0.5,
+	}));
+	
+	sprite.zIndex = 0;
+	sprite.zGroup = 1e10;
+	
+	sprite.material.alphaTest = 0.0;
+	
+	sprite.material.sizeAttenuation = false;
+	sprite.material.alignment.y = 999.0;
+	sprite.material.depthTest = false;
+	
+	sprite.scale.y = 0.9 * 0.03 * ( textHeight / 14 ) * ( 1080 / mapLoader.screen.height );
+	sprite.scale.x = sprite.scale.y * canvas.width / canvas.height;
+		
+	sprite.position = this.position;
+	
+	this.displayMessageSprite = sprite;
+	
+	this.mapInstance.scene.add(sprite);
 	
 };

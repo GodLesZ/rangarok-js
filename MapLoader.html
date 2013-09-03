@@ -7,11 +7,15 @@
 		<script src="common.js"></script>
 		<script src="prototype.js"></script>
 		
+		<script src="settings.js"></script>
 		
 		<script src="Tables/mp3nametable.js"></script>
+		<script src="Tables/fogparametertable.js"></script>
 		<script src="Tables/ClassResNameTable.js"></script>
+		<script src="Tables/pcjobtable.js"></script>
 		<script src="Tables/AccessoryIdTable.js"></script>
 		<script src="Tables/AccessoryNameTable.js"></script>
+		<script src="Tables/HeadIdTable.js"></script>
 		<script src="SoundPlayer.js"></script>
 		
 		<script src="FileFormat/rsm.js"></script>
@@ -45,6 +49,11 @@
 		height: 100%;
 	}
 	
+	body {
+		background: url("load_kr/loading02.jpg") no-repeat center center fixed;
+		background-size: cover;
+	}
+	
 	* {
 		padding: 0;
 		margin: 0;
@@ -58,7 +67,61 @@
 
 'use strict';
 
+var webGlTest = function() {
+	
+	if (!window.WebGLRenderingContext) {
+		return false; 
+	}
+
+	var gl = document.createElement("canvas").getContext("webgl")
+		|| document.createElement("canvas").getContext("experimental-webgl");
+	
+	if(!gl) {
+		return false;
+	}
+	
+	return true;
+}
+
 window.onload = function() {
+
+	var e0 = window.navigator.userAgent.match("((Chrom(e|(ium)))|(Firefox))/2[0-9]") == null;
+	var e1 = !webGlTest();
+	
+	
+	var skip = location.href.match('compatibility-ignore');
+	
+	if((e0 || e1) && !skip) {
+		
+		window.document.body.style.background = "#eeeeee";
+	
+		var msg1 = (e0 && "Incompatible browser") || (e1 && "WebGL not supported");
+		var msg2 = (e0 && "<p>This demo requires a recent version of Google Chrome or Mozilla Firefox. Sorry about that!</p><p>Please upgrade your browser and come back.</p>")
+			|| (e1 && "<p>Your computer does not seem to support WebGL. Find out more at <a style='text-decoration: none' href='http://get.webgl.org/'>get.webgl.org</a></p>");
+	
+		window.document.body.innerHTML = "\
+		<div style='position: absolute; top: 25%; left: 10%; width: 80%; height: 50%; line-height: 3em;'>\
+			<div style='font-family: helvetica, calibri; padding: 10px;'>\
+				<span style='font-size: 5em; font-family: helvetica, calibri; color: #666666;'>" + msg1 + "</span><br />\
+				<div style='margin-top: 1em; max-width: 80%;'>\
+					<span style='font-size: 2em;;'>" + msg2 + "</span>\
+				</div>\
+				<div style='max-width: 80%;'>\
+					<span style='font-size: 1em; font-weight: bold;'>Want to try anyway? <a style='text-decoration: none' href='?compatibility-ignore'>Click here.</a></span>\
+				</div>\
+			</div>\
+		\
+		</div>";
+		
+	} else {
+		start();
+	}
+
+};
+
+var start = function() {
+	
+	//<script>
 	
 	//var width = window.innerWidth;
 	//var height = window.innerHeight;
@@ -192,6 +255,13 @@ window.onload = function() {
 	//});
 	
 	//return;
+		
+	window.document.body.innerHTML = "\
+		<div id='b_loading' style='position: absolute; top: 50%; left: 50%; width: 64px; height: 64px; margin-left: -32px; margin-top: -32px;'>\
+			<img src='assets/loading64-2.gif' />\
+		</div>";//<script>
+	
+	var bLoading = document.getElementById("b_loading");
 	
 	var mapLoader = new MapLoader();
 	
@@ -199,100 +269,53 @@ window.onload = function() {
 	
 	var obj = new SpriteActor(mapLoader);
 	
-	var msns = [
-		"incantation_samurai", 
-		"poring", 
-		"baphomet", 
-		"smokie", 
-		"ghostring", 
-		"angeling", 
-		//"morocc", 
-		//"s_nydhog", 
-		"eddga", 
-		"garm", 
-		"mantis", 
-		"miyabi_ningyo", 
-		"clock", 
-		"bloody_murderer", 
-		"argiope", 
-		"deniro", 
-		"cookie",
-		"loli_ruri",
-	];
-	
-	msns = [];
-	
-	var mobj = [];
-	
-	window.mobj = mobj;
-	
 	var start = Date.now();
 	
-	var b = mapLoader.loadMap("gl_knt02.rsw").then(function(d) {
-		console.log("It's loaded!", d);
-		console.log("Time: " + (Date.now() - start) + "ms");
-		
-		mapLoader.start();
-		
-		SoundPlayer.playBGM(mp3NameTable[mapLoader.getMapName()]);
-		
-		obj.SetGatPosition(136, 102);
-		window.s = obj;
-		mapLoader.bindCamera(obj);
-	});
+	var mapName = location.href.match(/map=([\w\d_]+.rsw)/i);
 	
-	console.log(b._state);
-	
-	for(var i = 0; i < msns.length; i++) {
-		mobj.push(new SpriteActor(mapLoader));
-		b.then(lol.bind(this, mobj[i], "sprite/¸ó½ºÅÍ/" + msns[i], SpriteActor.Attachment.BODY));
-	}
-	
-	b.finally(function() {
-		for(var i = 0; i < msns.length; i++) {
-			mobj[i].SetGatPosition(192 + Math.round(5 - Math.random() * 10), 184 + Math.round(5 - Math.random() * 10));
-			mobj[i].MovementSpeed = 200;
-		}
-	})
-	
-	//.then(lol.bind(this, obj, "sprite/¸ó½ºÅÍ/incantation_samurai", SpriteActor.Attachment.BODY))
-	.then(lol.bind(this, obj, "sprite/ÀÎ°£Á·/¸öÅë/³²/»óÀÎ_³²", SpriteActor.Attachment.BODY))
-	.then(lol.bind(this, obj, "sprite/ÀÎ°£Á·/¸Ó¸®Åë/³²/7_³²", SpriteActor.Attachment.HEAD))
-	//.then(lol.bind(this, obj, "sprite/¾Ç¼¼»ç¸®/³²/³²_Åä³¢¸Ó¸®¶ì", SpriteActor.Attachment.TOP))
-	.then(function() {
-		
-		for(var i = 0; i < msns.length; i++) {
-			setInterval((function(obj) {
-				return function() {
-					obj.MoveToGatPosition(
-						obj.gatPosition.x + Math.round(5 - Math.random() * 15),
-						obj.gatPosition.y + Math.round(5 - Math.random() * 15)
-					);
-				}
-			})(mobj[i]), 2500 + Math.random() * 5000);
-		}
-		
-		setInterval(function() {
+	mapLoader
+		.loadMap((mapName !== null && mapName[1]) || "te_prt_gld.rsw")
+		.then(function(d) {
 			
-			for(var i = 0; i < msns.length; i++) mobj[i].Update(mapLoader.camera);
+			console.log("Info: Loading finished in " + (Date.now() - start) + "ms");
 			
-			obj.Update(mapLoader.camera);
+			// Hide loading stuff
+			document.body.removeChild(bLoading);
+			
+			// Start rendering
+			mapLoader.start();
+			
+			// Play music
+			//SoundPlayer.playBGM(mp3NameTable[mapLoader.getMapName()]);
+			
+			// Set position
+			obj.SetGatPosition(44, 136);
+			
+			window.s = obj;
+			
+			// Bind camera to player
+			mapLoader.bindCamera(obj);
+		})
 		
-		}, 10);
-	
-	});
-	
-	//.then(lol.bind(this, "sprite/¸ó½ºÅÍ/nightmare", 140));
+		.then(lol.bind(this, obj, "sprite/ÀÎ°£Á·/¸öÅë/³²/»óÀÎ_³²", SpriteActor.Attachment.BODY))
+		.then(lol.bind(this, obj, "sprite/ÀÎ°£Á·/¸Ó¸®Åë/³²/7_³²", SpriteActor.Attachment.HEAD))
+		.then(lol.bind(this, obj, "sprite/shadow", SpriteActor.Attachment.SHADOW))
+		//.then(lol.bind(this, obj, "sprite/¾Ç¼¼»ç¸®/³²/³²_Åä³¢¸Ó¸®¶ì", SpriteActor.Attachment.TOP))
+		.then(function() {
+			
+			settop(AccessoryIdTable.ACCESSORY_SAHT_GAHT);
+			setmid(AccessoryIdTable.ACCESSORY_ELF_SUNGLASS);
+			
+			setInterval(function() {
+				obj.Update(mapLoader.camera);
+			}, 10);
+		
+		});
 };
 
- //body
-//addSpriteAttachment( actor, 'body', 'ÀÎ°£Á·/¸öÅë/³²/»óÀÎ_³²' );
-// head
-//addSpriteAttachment( actor, 'head', 'ÀÎ°£Á·/¸Ó¸®Åë/³²/7_³²' );
-
-// head gear
-// HEADGEAR/GENDER/GENDER_NAME
-//addSpriteAttachment( actor, 'head_top', '¾Ç¼¼»ç¸®/³²/³²_Åä³¢¸Ó¸®¶ì' );
+function say(message) {
+	s.displayMessageLabel(message);
+};
 
 function setclass(class_id) {
 	lol(window.s, "sprite/ÀÎ°£Á·/¸öÅë/³²/" + ClassResNameTable[ class_id ] + "_³²", SpriteActor.Attachment.BODY);
@@ -300,10 +323,60 @@ function setclass(class_id) {
 
 function settop(accessory_id) {
 	lol(window.s, "sprite/¾Ç¼¼»ç¸®/³²/³²" + AccessoryNameTable[ accessory_id ], SpriteActor.Attachment.TOP);
-	//lol(window.s, "sprite/¾Ç¼¼»ç¸®/³²/³²_Åä³¢¸Ó¸®¶ì", location);
 }
 
-function spawn(monster_id, gat_x, gat_y) {
+function setmid(accessory_id) {
+	lol(window.s, "sprite/¾Ç¼¼»ç¸®/³²/³²" + AccessoryNameTable[ accessory_id ], SpriteActor.Attachment.MID);
+}
+
+function setbottom(accessory_id) {
+	lol(window.s, "sprite/¾Ç¼¼»ç¸®/³²/³²" + AccessoryNameTable[ accessory_id ], SpriteActor.Attachment.BOTTOM);
+}
+
+function npc(npc_id, x, y) {
+	var npc = spawn("sprite/npc/" + npc_id, false, x, y);
+	
+	npc.type = SpriteActor.Types.NPC;
+	npc.name = npc_id;
+	
+	return npc;
+}
+
+function monster(monster_id, x, y) {
+	
+	var m = spawn("sprite/¸ó½ºÅÍ/" + monster_id, true, x, y);
+	
+	m.type = SpriteActor.Types.MONSTER;
+	m.name = monster_id;
+	
+	return m;
+}
+
+function allplayer() {
+	
+	var k = 0;
+	
+	for(var i in ClassResNameTable) {
+		setTimeout(player.bind(this, i), k * 350);
+		k++;
+	};
+	
+};
+
+function player(class_id) {
+	
+	var actor = spawn("sprite/ÀÎ°£Á·/¸öÅë/³²/" + ClassResNameTable[ class_id ] + "_³²", true);
+	
+	lol(actor, "sprite/ÀÎ°£Á·/¸Ó¸®Åë/³²/" + HeadIdTable[1][ parseInt(Math.random() * HeadIdTable[1].length ) ] + "_³²", SpriteActor.Attachment.HEAD);
+	
+	actor.type = SpriteActor.Types.PLAYER;
+	actor.name = "job_" + class_id;
+	
+	return actor;
+	
+};
+
+function spawn(path, move, gat_x, gat_y) {
 
 	var task = Deferred();
 	var actor = new SpriteActor(mapLoader);
@@ -311,25 +384,57 @@ function spawn(monster_id, gat_x, gat_y) {
 	gat_x = gat_x || (s.gatPosition.x + Math.round(5 - Math.random() * 10));
 	gat_y = gat_y || (s.gatPosition.y + Math.round(5 - Math.random() * 10));
 	
-	task.then(lol.bind(this, actor, "sprite/¸ó½ºÅÍ/" + monster_id, SpriteActor.Attachment.BODY));
+	task.then(lol.bind(this, actor, path, SpriteActor.Attachment.BODY));
+	
+	task.then(lol.bind(this, actor, "sprite/shadow", SpriteActor.Attachment.SHADOW));
+	
 	task.finally(function() {
-		console.log('aaa');
 		actor.SetGatPosition(gat_x, gat_y);
 		actor.MovementSpeed = 200;
 	});
 	
-	setInterval((function(obj) {
+	var lines = [
+		"lol noobs!",
+		"come at me bro",
+		"testing....",
+		"this is horrible",
+		"i'm not botting....",
+		"chill man its cool",
+		"what?",
+		"idk yo",
+		"huehuehuehue",
+		"brasil #1 !!!!!",
+		"^___^",
+		"xD that so funny",
+		"like wut?",
+		"hmmmmmmmmmmmm",
+		"this game is stupid",
+		"selling gr card 1M PM ME!!",
+		"hey guys"
+	];
+	
+	if(move) setInterval((function(obj) {
 		return function() {
-			obj.MoveToGatPosition(
-				obj.gatPosition.x + Math.round(5 - Math.random() * 15),
-				obj.gatPosition.y + Math.round(5 - Math.random() * 15)
-			);
+			
+			if(Math.random() < 0.05 && obj.type == SpriteActor.Types.PLAYER) {
+				obj.displayMessageLabel(obj.name + ": " + lines[ Math.round( Math.random() * (lines.length - 1) ) ]);
+			}
+			
+			if(Math.random() < 0.5) {			
+				obj.MoveToGatPosition(
+					obj.gatPosition.x + Math.round(5 - Math.random() * 10),
+					obj.gatPosition.y + Math.round(5 - Math.random() * 10)
+				);			
+			}
+			
 		}
-	})(actor), 2500 + Math.random() * 5000);
+	})(actor), 1500 + Math.random() * 1000);
 	
 	setInterval(function() {
 		actor.Update(mapLoader.camera);
 	}, 10);
+
+	return actor;
 
 };
 
@@ -337,28 +442,33 @@ function lol(obj, n, ttype) {
 
 	console.log("Info: Loading attachment " + n);
 
-	var q = Deferred();
+	var queue = Deferred();
+	
+	var name = n;
+	
 	var sprFileObject = null;
 	var actFileObject = null;
 	
-	q	.then(ResourceLoader.getSpr.bind(this, n+".spr"))
-		.then(function(data) {
-			sprFileObject = new SprParser(data);
+	// Get SPR object
+	queue
+		.then(ResourceLoader.getProcessedFileObject.bind(this, ResourceLoader.FileType.SPR, name + ".spr"))
+		.then(function(pObj) {
+			sprFileObject = pObj;
 		});
-		
-	q	.then(ResourceLoader.getAct.bind(this, n+".act"))
-		.then(function(data) {
-			actFileObject = new ActParser(data);
+	
+	// Get ACT object
+	queue
+		.then(ResourceLoader.getProcessedFileObject.bind(this, ResourceLoader.FileType.ACT, name + ".act"))
+		.then(function(pObj) {
+			actFileObject = pObj;
 		});
-		
-	q	.finally(function() {
-			
+	
+	// Set attachment
+	return queue.finally(function() {
 		obj.SetAttachment(ttype, sprFileObject, actFileObject);
-		
 		obj.addAttachmentToScene(mapLoader.scene, ttype);
-		
-	});
-
+	})
+	
 }
 
 	</script>

@@ -12681,6 +12681,9 @@ THREE.SpriteMaterial = function ( parameters ) {
 	// defaults
 
 	this.color = new THREE.Color( 0xffffff );
+	
+	this.colorId = { r: 0, g: 0, b: 0 };
+	
 	this.map = new THREE.Texture();
 
 	this.useScreenCoordinates = true;
@@ -13732,6 +13735,8 @@ THREE.Sprite = function ( material ) {
 	this.rotation = 0;
 
 };
+
+THREE.Sprite.PickingMode = 0;
 
 THREE.Sprite.prototype = Object.create( THREE.Object3D.prototype );
 
@@ -15541,15 +15546,20 @@ THREE.ShaderChunk = {
 	lightmap_fragment: [
 
 		"#ifdef USE_LIGHTMAP",
-			// MODIFIED!
+			// #MODIFIED LIGHTMAP
 			//"gl_FragColor = gl_FragColor * ;",
 			//"gl_FragColor = vec4 (gl_FragColor.r + texture2D( lightMap, vUv2 ).r, gl_FragColor.g + texture2D( lightMap, vUv2 ).g, gl_FragColor.b + texture2D( lightMap, vUv2 ).b, gl_FragColor.a) / texture2D( lightMap, vUv2 ).a;",
 			//"gl_FragColor = clamp( vec4 (gl_FragColor.rgb * (texture2D( lightMap, vUv2 ).a) + texture2D( lightMap, vUv2 ).rgb * gl_FragColor.a, gl_FragColor.a) , 0.0, 1.0);",
+			
+			
 			"gl_FragColor = ",
 			"clamp( ",
-			//"vec4 (gl_FragColor.rgb + texture2D( lightMap, vUv2 ).rgb, gl_FragColor.a * texture2D( lightMap, vUv2 ).a)",
-			"vec4 (gl_FragColor.rgb * (texture2D( lightMap, vUv2 ).a) + texture2D( lightMap, vUv2 ).rgb / 1.0, gl_FragColor.a )",
+			//"vec4 (gl_FragColor.rgb + texture2D( lightMap, vUv2 ).rgb, gl_FragColor.a / texture2D( lightMap, vUv2 ).a)",
+			//"vec4 (gl_FragColor.rgb * (texture2D( lightMap, vUv2 ).a) + texture2D( lightMap, vUv2 ).rgb / 1.0, gl_FragColor.a )",
 			//"texture2D( lightMap, vUv2 )",
+			
+			"vec4( gl_FragColor.rgb * texture2D( lightMap, vUv2 ).a + texture2D( lightMap, vUv2 ).rgb, gl_FragColor.a )",
+			
 			", 0.0, 1.0)",
 			";",
 
@@ -35807,6 +35817,11 @@ THREE.SpritePlugin = function () {
 		_sprite.uniforms.fogColor 		  	  = _gl.getUniformLocation( _sprite.program, "fogColor" );
 		
 		_sprite.uniforms.alphaTest 		  	  = _gl.getUniformLocation( _sprite.program, "alphaTest" );
+		
+		// UNIFORM
+		_sprite.uniforms.colorId              = _gl.getUniformLocation( _sprite.program, "colorId" );
+		_sprite.uniforms.blendingMode	  	  = _gl.getUniformLocation( _sprite.program, "blendingMode" );
+		_sprite.uniforms.zIndex   		  	  = _gl.getUniformLocation( _sprite.program, "zIndex" );
 
 	};
 
@@ -35845,7 +35860,7 @@ THREE.SpritePlugin = function () {
 
 		_gl.activeTexture( _gl.TEXTURE0 );
 		_gl.uniform1i( uniforms.map, 0 );
-
+		
 		var oldFogType = 0;
 		var sceneFogType = 0;
 		var fog = scene.fog;
@@ -35906,13 +35921,53 @@ THREE.SpritePlugin = function () {
 
 		}
 
-		sprites.sort( painterSortStable );
+		//sprites.sort( painterSortStable );
+		
+		// #MODIFIED
+		
+		sprites.sort( function(a, b) {
+		
+			//return (b.z - a.z) * 10e9 + (a.zGroup - b.zGroup) * 10e6 + (a.zIndex - b.zIndex);
+			return (a.zGroup - b.zGroup) * 10e4 + (a.zIndex - b.zIndex);
+		
+		} )
+		
+		//var begin = 0;
+		//var gId = -1;
+		
+		//for( i = 0; i < nSprites; i ++ ) {
+		
+		//	sprite = sprites[ i ];
+		
+		//	if( sprite.zGroup != gId ) {
+		//		begin = i;
+		//	}
+			
+		//	for(var zz = 0; zz < nSprites; zz ++ ) {
+				
+		//		if( sprites[zz].zIndex < ) {
+				
+		//		}
+				
+		//	}
+			
+		//}
+		
 
 		// render all sprites
 
 		for( i = 0; i < nSprites; i ++ ) {
 
 			sprite = sprites[ i ];
+			
+			//if(i < 0) {
+			//	for(var j = i - 1; j >= 0; j--) {
+			//		if(sprite.zIndex < sprites[j]) {
+			//			throw "FUCK THE WORLD";
+			//		}
+			//	}
+			//}
+			
 			material = sprite.material;
 
 			if ( ! sprite.visible || material.opacity === 0 ) continue;
@@ -35961,7 +36016,15 @@ THREE.SpritePlugin = function () {
 					oldFogType = fogType;
 
 				}
-
+	
+				// #MODIFIED 111
+				
+				_gl.uniform1i( uniforms.blendingMode, THREE.Sprite.PickingMode || 0 );
+				_gl.uniform3f( uniforms.colorId, material.colorId.r, material.colorId.g, material.colorId.b );
+				_gl.uniform1f( uniforms.zIndex, sprite.zIndex );
+				
+				//
+				
 				size = 1 / ( material.scaleByViewport ? viewportHeight : 1 );
 
 				scale[ 0 ] *= size * invAspect * sprite.scale.x
@@ -36017,14 +36080,14 @@ THREE.SpritePlugin = function () {
 		return program;
 
 	};
-
+	
 	function painterSortStable ( a, b ) {
 
-		if ( a.z !== b.z && a.zGroup != b.zGroup ) {
+		if ( a.z !== b.z ) {
 			return b.z - a.z;
 
 		} else {
-			return a.zIndex - b.zIndex;
+			return 0;
 		}
 
 	};
@@ -36445,6 +36508,7 @@ THREE.ShaderSprite = {
 
 			// #MODIFIED!
 			"varying vec4 finalPosition;",
+			"uniform float zIndex;",
 			
 			"varying vec2 vUV;",
 
@@ -36471,14 +36535,27 @@ THREE.ShaderSprite = {
 					"finalPosition.xy += rotatedPosition * ( sizeAttenuation == 1 ? 1.0 : finalPosition.z );",
 
 					// #MODIFIED!
-					"finalPosition.z -= 0.008;",
+					//"finalPosition.z -= 0.008;",
 
 				"}",
 
 				// #MODIFIED!
 				//"finalPosition.x = finalPosition.x + 10.0;",
 
+				"float adjustment = uv.y * uvScale.y;",
+
+//uv.y * alignment / uvscale
+
+				//"gl_Position = finalPosition + vec4( 0.0, 0.0, 0.003 * ( alignment.y + adjustment / alignment.y ), 0.0 );",
 				"gl_Position = finalPosition;",
+				//"gl_Position.z += 0.001 * ( alignment.y ) - 0.01 * uv.y * uvScale.y;",
+				
+				//"gl_Position.z += 0.003 + 0.01 * ( 0.05 * uv.y * uvScale.y - alignment.y ) / alignment.y;",
+				//"gl_Position.z += - 0.02 + 0.15 * ( 0.05 * uv.y * uvScale.y - alignment.y ) / (alignment.y * uvScale.y);",
+				
+				"if(zIndex >= 1.0)",
+				
+					"gl_Position.z += 0.003 + 0.01 * ( 0.05 * uv.y * uvScale.y - alignment.y ) / alignment.y - 0.00001 * zIndex;",
 
 			"}"
 
@@ -36499,6 +36576,8 @@ THREE.ShaderSprite = {
 			
 			// #MODIFIED
 			"varying vec4 finalPosition;",
+			"uniform int blendingMode;",
+			"uniform vec3 colorId;",
 
 			"varying vec2 vUV;",
 
@@ -36508,14 +36587,25 @@ THREE.ShaderSprite = {
 
 				"if ( texture.a < alphaTest ) discard;",
 
-				"gl_FragColor = vec4( color * texture.xyz, texture.a * opacity );",
+				// #MODIFIED
+				"if (blendingMode == 0) {",
+				
+					"gl_FragColor = vec4( color * texture.xyz, texture.a * opacity );",
+
+				"} else {",
+				
+					"gl_FragColor = vec4( colorId, 1.0 );",
+
+				"}",
+
+				//
 
 				"if ( fogType > 0 ) {",
 
 					"float depth = gl_FragCoord.z / gl_FragCoord.w;",
 					"float fogFactor = 0.0;",
 
-					"if ( fogType == 1 ) {",
+					"if ( fogType == 1 && blendingMode == 0 ) {",
 
 						"fogFactor = smoothstep( fogNear, fogFar, depth );",
 

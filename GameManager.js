@@ -41,6 +41,7 @@ Ragnarok.prototype.init = function() {
 	
 	this.gui.init();
 	
+	/*
 	this.chatWindow = this.gui.getWindow( Interface.ChatWindow );
 	
 	this.chatWindow.onEvent = (function(str) {
@@ -49,6 +50,7 @@ Ragnarok.prototype.init = function() {
 	}).bind(this);
 	
 	this.gui.add(this.chatWindow, InterfaceAlignment.Left, InterfaceAlignment.Bottom);
+	*/
 	
 	this.onStateLoginReady();
 	
