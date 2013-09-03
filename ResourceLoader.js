@@ -4,10 +4,19 @@ ResourceLoader.files = new Map();
 ResourceLoader.processing = new Map();
 ResourceLoader.requests = new Map();
 
-ResourceLoader.baseUrl = "../lux/data/";
+ResourceLoader.baseUrl = Settings.dataFolderUri;
 
 ResourceLoader.useFileSystem = false;
+ResourceLoader.useNativeFileSystem = false;
+
 ResourceLoader.fs = null;
+
+if( Settings.standAlone ) {
+
+	ResourceLoader.useNativeFileSystem = true;
+	ResourceLoader.nativeFs = require('fs');
+
+}
 
 ResourceLoader.init = function() {
 	
@@ -16,7 +25,7 @@ ResourceLoader.init = function() {
 	if(window.requestFileSystem) {
 		window.requestFileSystem(
 			window.TEMPORARY, 
-			512 * 1024 * 1024, // 512MB
+			(1024 + 512) * 1024 * 1024, // 1.5GB
 			function(fs) {
 				console.log("Using file system API");
 				ResourceLoader.useFileSystem = true;
@@ -209,17 +218,48 @@ ResourceLoader.escapeRemotePath = function(fileName) {
 	return name;
 };
 
-ResourceLoader.getRemoteFile = function(fileName) {
+ResourceLoader.getLocalFile = function( fileName ) {
+
+	var filePromise = new Deferred();
 	
+	var toArrayBuffer = function( buffer ) {
+		var ab = new ArrayBuffer(buffer.length);
+		var view = new Uint8Array(ab);
+		for (var i = 0; i < buffer.length; ++i) {
+			view[i] = buffer[i];
+		}
+		return ab;
+	};
+	
+	ResourceLoader.nativeFs.readFile( ResourceLoader.baseUrl + fileName, undefined, function(err, data) {
+		
+		if(err != null) {
+			console.log( "Error reading local file \"" + fileName + "\"", err, data, typeof data );
+			return;
+		}
+		
+		filePromise.success( toArrayBuffer(data) );
+		
+	});
+	
+	return filePromise;
+
+};
+
+ResourceLoader.getRemoteFile = function(fileName) {
+		
 	var item = new Deferred();
 	
 	if(ResourceLoader.files.has(fileName)) {
+		
 		item.success(ResourceLoader.files.get(fileName));
-		console.log('Already have file, hhmnnnnnnnnnh!!!');
+		
 	} else if(ResourceLoader.processing.has(fileName)) {
+		
 		var reqs = ResourceLoader.requests.get(fileName);
 		reqs.push(item);
 		ResourceLoader.requests.set(fileName, reqs);
+		
 	} else {
 	
 		ResourceLoader.processing.set(fileName, true);
@@ -245,20 +285,96 @@ ResourceLoader.getRemoteFile = function(fileName) {
 				
 			}
 		}
+		
 		xmlhttp.send(null);
+		
 	}
 	
 	return item;
 	
 };
 
-ResourceLoader.getRsw = function(rswName) { return ResourceLoader.getRemoteFile(rswName); };
-ResourceLoader.getGnd = function(gndName) { return ResourceLoader.getRemoteFile(gndName); };
-ResourceLoader.getGat = function(gatName) { return ResourceLoader.getRemoteFile(gatName); };
-ResourceLoader.getRsm = function(rsmName) { return ResourceLoader.getRemoteFile("model/" + rsmName); };
+ResourceLoader.requestFile = function( name ) {
+	
+	if( ResourceLoader.useNativeFileSystem ) {
+		return ResourceLoader.getLocalFile( name );
+	} else {
+		return ResourceLoader.getRemoteFile( name );
+	}
+	
+};
 
-ResourceLoader.getSpr = function(rsmName) { return ResourceLoader.getRemoteFile(rsmName); };
-ResourceLoader.getAct = function(rsmName) { return ResourceLoader.getRemoteFile(rsmName); };
+ResourceLoader.getRsw = function(rswName) { return ResourceLoader.requestFile(rswName); };
+ResourceLoader.getGnd = function(gndName) { return ResourceLoader.requestFile(gndName); };
+ResourceLoader.getGat = function(gatName) { return ResourceLoader.requestFile(gatName); };
+ResourceLoader.getRsm = function(rsmName) { return ResourceLoader.requestFile("model/" + rsmName); };
+
+ResourceLoader.getSpr = function(spriteName) { return ResourceLoader.requestFile(spriteName); };
+ResourceLoader.getAct = function(rsmName) { return ResourceLoader.requestFile(rsmName); };
+
+ResourceLoader.FileType = {
+	SPR: 0,
+	ACT: 1,
+	RSW: 2,
+	GAT: 3,
+	GND: 4,
+	RSM: 5
+};
+
+ResourceLoader.FileFormatParser = {};
+
+ResourceLoader.FileFormatParser[ ResourceLoader.FileType.SPR ] = SprParser;
+ResourceLoader.FileFormatParser[ ResourceLoader.FileType.ACT ] = ActParser;
+
+ResourceLoader.getBinaryFileData = function(fileType, pathName) {
+	
+	var fn = null;
+	
+	switch(fileType) {
+		case ResourceLoader.FileType.SPR: fn = ResourceLoader.getSpr; break;
+		case ResourceLoader.FileType.ACT: fn = ResourceLoader.getAct; break;
+		case ResourceLoader.FileType.RSW: fn = ResourceLoader.getRsw; break;
+		case ResourceLoader.FileType.GAT: fn = ResourceLoader.getGat; break;
+		case ResourceLoader.FileType.GND: fn = ResourceLoader.getGnd; break;
+		case ResourceLoader.FileType.RSM: fn = ResourceLoader.getRsm; break;
+	};
+	
+	if(!fn)
+		throw "ResourceLoader: Invalid format type in request for processed file object";
+	
+	return fn(pathName);
+	
+};
+
+ResourceLoader._processedFileObjects = new Map();
+
+ResourceLoader.getProcessedFileObject = function(fileType, pathName) {
+	
+	return ResourceLoader.getBinaryFileData(fileType, pathName)
+		
+		.then(function(data) {
+			
+			var fId = fileType + pathName;
+			
+			if(ResourceLoader._processedFileObjects.has(fId)) {
+				return ResourceLoader._processedFileObjects.get(fId);
+			}
+			
+			var parser = ResourceLoader.FileFormatParser[fileType];
+			var pfObj = new parser(data);
+			
+			ResourceLoader._processedFileObjects.set(fId, pfObj);
+			
+			return pfObj;
+			
+		});
+	
+};
+
+
+ResourceLoader.getSpriteObject = function(spriteName) {
+	return ResourceLoader.getSpr();
+};
 
 ResourceLoader.getTexture = function(texturePath) {
 	return THREE.ImageUtils.loadTexture(ResourceLoader.baseUrl + "texture/" + ResourceLoader.escapeRemotePath(texturePath), {});

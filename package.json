@@ -1,0 +1,26 @@
+{
+  
+  "name": "ragnarok",
+  "main": "MapLoader.html",
+  
+  "window": {
+	
+	"title": "Ragnarok Online",
+	
+	"width": 1024,
+	"height": 768,
+	
+	"min_width": 1024,
+	"max_width": 1024,
+	
+	"min_height": 768,
+	"max_height": 768,
+	
+	"fullscreen": false,
+	"frame": true,
+	"icon": "icon.png",
+	"toolbar": false
+	
+  }
+  
+}
