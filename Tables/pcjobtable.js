@@ -108,4 +108,4 @@ var PCJobTbl = {
 	JT_SURA_B: 4106,
 	JT_GENETIC_B: 4107,
 	JT_SHADOW_CHASER_B: 4108
-}
+};

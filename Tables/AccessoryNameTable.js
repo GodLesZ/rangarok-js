@@ -1,4 +1,4 @@
-AccessoryNameTable = {};
+var AccessoryNameTable = {};
 
 AccessoryNameTable[ AccessoryIdTable.ACCESSORY_GOGGLES ] = "_°í±Û";
 AccessoryNameTable[ AccessoryIdTable.ACCESSORY_CATTYHAIRBAND ] = "_°í¾çÀÌ¸Ó¸®¶ì";
@@ -660,7 +660,7 @@ AccessoryNameTable[ AccessoryIdTable.ACCESSORY_DROOPING_BOTO ] = "_´Ã¾îÁø�
 AccessoryNameTable[ AccessoryIdTable.ACCESSORY_TENDRILION_HAT ] = "_ÅÙµå¸±¸®¿Â¸ðÀÚ";
 AccessoryNameTable[ AccessoryIdTable.ACCESSORY_PERSICA ] = "_Æä¸£½ÃÄ«";
 AccessoryNameTable[ AccessoryIdTable.ACCESSORY_HOPLITE_HELMET ] = "_ÁßÀåº¸º´ÀÇÅõ±¸";
-AccessoryNameTable[ AccessoryIdTable.ACCESSORY_3DGLASS ] = "_3D¾È°æ",	
+AccessoryNameTable[ AccessoryIdTable.ACCESSORY_3DGLASS ] = "_3D¾È°æ";
 AccessoryNameTable[ AccessoryIdTable.ACCESSORY_YELLOWBUNNY_HAIRBAND ] = "_³ë¶õÅä³¢¸Ó¸®¶ì";
 AccessoryNameTable[ AccessoryIdTable.ACCESSORY_PINKBUNNY_HAIRBAND ] = "_ÇÎÅ©Åä³¢¸Ó¸®¶ì";
 AccessoryNameTable[ AccessoryIdTable.ACCESSORY_GREENBUNNY_HAIRBAND ] = "_±×¸°Åä³¢¸Ó¸®¶ì";
@@ -730,7 +730,7 @@ AccessoryNameTable[ AccessoryIdTable.ACCESSORY_MINI_TREE ] = "_¹Ì´ÏÆ®¸®"
 AccessoryNameTable[ AccessoryIdTable.ACCESSORY_KING_PRAWN_HAT ] = "_¿Õ»õ¿ì¸ðÀÚ";
 AccessoryNameTable[ AccessoryIdTable.ACCESSORY_GENERAL_HELMET ] = "_Àå±ºÀÇÅõ±¸";
 AccessoryNameTable[ AccessoryIdTable.ACCESSORY_SINSUNCHO_HAT ] = "_½Å¼±ÃÊ¸ðÀÚ";
-AccessoryNameTable[ AccessoryIdTable.ACCESSORY_B_FEATHER_BERET ] = "_°ËÀº±êÅÐº£·¹¸ð",	
+AccessoryNameTable[ AccessoryIdTable.ACCESSORY_B_FEATHER_BERET ] = "_°ËÀº±êÅÐº£·¹¸ð";
 AccessoryNameTable[ AccessoryIdTable.ACCESSORY_BONE_HAT ] = "_ÇØ°ñ¸ðÀÚ";
 AccessoryNameTable[ AccessoryIdTable.ACCESSORY_HEART_WING_HAIRBAND ] = "_ÇÏÆ®³¯°³Çì¾î¹êµå";
 AccessoryNameTable[ AccessoryIdTable.ACCESSORY_LOVE_PIECE ] = "_»ç¶ûÀÇÁ¶°¢";
