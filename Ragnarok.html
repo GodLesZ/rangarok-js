@@ -1,119 +1,126 @@
-<script src="Tables/VarEnum.js"></script>
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta http-equiv="content-type" content="text/html; charset=utf-8">
 
-<!-- Commons -->
-		
-<script src="common.js"></script>
-<script src="prototype.js"></script>
-<script src="Deferred.js"></script>
+		<script src="Tables/VarEnum.js"></script>
 
-<script src="settings.js"></script>
+		<!-- Commons -->
 
-<!-- Tables -->
+		<script src="common.js"></script>
+		<script src="prototype.js"></script>
+		<script src="Deferred.js"></script>
 
-<script src="Tables/VarEnum.js"></script>
-<script src="Tables/mp3nametable.js"></script>
-<script src="Tables/fogparametertable.js"></script>
-<script src="Tables/ClassResNameTable.js"></script>
-<script src="Tables/pcjobtable.js"></script>
-<script src="Tables/AccessoryIdTable.js"></script>
-<script src="Tables/AccessoryNameTable.js"></script>
-<script src="Tables/HeadIdTable.js"></script>
+		<script src="settings.js"></script>
 
-<!-- File formats -->
+		<!-- Tables -->
 
-<script src="FileFormat/rsm.js"></script>
-<script src="FileFormat/gat.js"></script>
-<script src="FileFormat/gnd.js"></script>
-<script src="FileFormat/rsw.js"></script>
-<script src="FileFormat/SprParser.js"></script>
-<script src="FileFormat/ActParser.js"></script>
+		<script src="Tables/VarEnum.js"></script>
+		<script src="Tables/mp3nametable.js"></script>
+		<script src="Tables/fogparametertable.js"></script>
+		<script src="Tables/ClassResNameTable.js"></script>
+		<script src="Tables/pcjobtable.js"></script>
+		<script src="Tables/AccessoryIdTable.js"></script>
+		<script src="Tables/AccessoryNameTable.js"></script>
+		<script src="Tables/HeadIdTable.js"></script>
 
-<!-- Helpers -->
+		<!-- File formats -->
 
-<script src="ResourceLoader.js"></script>
+		<script src="FileFormat/rsm.js"></script>
+		<script src="FileFormat/gat.js"></script>
+		<script src="FileFormat/gnd.js"></script>
+		<script src="FileFormat/rsw.js"></script>
+		<script src="FileFormat/SprParser.js"></script>
+		<script src="FileFormat/ActParser.js"></script>
 
-<!-- Input -->
+		<!-- Helpers -->
 
-<script src="InputEventHandler.js"></script>
+		<script src="ResourceLoader.js"></script>
 
-<!-- Interface -->
+		<!-- Input -->
 
-<script src="Interface/InterfaceCommons.js"></script>
+		<script src="InputEventHandler.js"></script>
 
-<script src="Interface/InterfaceComponent.js"></script>
-<script src="Interface/BaseWindow.js"></script>
+		<!-- Interface -->
 
-<script src="Interface/SelectionList.js"></script>
-<script src="Interface/InputButton.js"></script>
+		<script src="Interface/InterfaceCommons.js"></script>
 
-<script src="Interface/CanvasTextfield.js"></script>
-<script src="Interface/DOMTextInput.js"></script>
+		<script src="Interface/InterfaceComponent.js"></script>
+		<script src="Interface/BaseWindow.js"></script>
 
-<script src="WindowObjects.js"></script>
+		<script src="Interface/SelectionList.js"></script>
+		<script src="Interface/InputButton.js"></script>
 
-<script src="InterfaceManager.js"></script>
+		<script src="Interface/CanvasTextfield.js"></script>
+		<script src="Interface/DOMTextInput.js"></script>
 
+		<script src="WindowObjects.js"></script>
 
-<!-- Sound -->
-
-<script src="SoundPlayer.js"></script>
-
-<!-- 3D -->
-
-<script src="graphics/include/BoundingBox.js"></script>
-<script src="include/three.58.js"></script>
-<script src="RagnarokControls.js"></script>
-
-<script src="MapLoader.js"></script>
-
-<script src="SpriteActor.js"></script>
-
-<!-- Network -->
-
-<script src="PacketLengthTable.js"></script>
-<script src="PacketParser.js"></script>
-<script src="PacketBuilder.js"></script>
-
-<script src="PacketEventHandlers.js"></script>
-
-<script src="NetworkSession.js"></script>
-<script src="NetworkManager.js"></script>
-
-<script src="FileManager.js"></script>
-
-<script src="SceneManager.js"></script>
-
-<script src="GameManager.js"></script>
+		<script src="InterfaceManager.js"></script>
 
 
-<link rel="stylesheet" type="text/css" href="Ragnarok.css" />
+		<!-- Sound -->
 
-<script>
+		<script src="SoundPlayer.js"></script>
 
-// Main application entry point
+		<!-- 3D -->
 
-window.onload = (function() {
-	
-	return function() {
-		
-		ro_text_container = document.createElement('div');
-		ro_text_container.id = 'ro-text-container';
-		
-		document.body.appendChild( ro_text_container );
-		
-		(new Ragnarok( document )).init();
-		
-		//document.body.appendChild( ragnarok.scene.domElement );
-		document.body.appendChild(Ragnarok.Instance.gui.domElement );
-		
-		
-	};
-	
-})();
+		<script src="graphics/include/BoundingBox.js"></script>
+		<script src="include/three.58.js"></script>
+		<script src="RagnarokControls.js"></script>
 
-</script>
+		<script src="MapLoader.js"></script>
 
-<body>
-	
-	
-</body>
+		<script src="SpriteActor.js"></script>
+
+		<!-- Network -->
+
+		<script src="PacketLengthTable.js"></script>
+		<script src="PacketParser.js"></script>
+		<script src="PacketBuilder.js"></script>
+
+		<script src="PacketEventHandlers.js"></script>
+
+		<script src="NetworkSession.js"></script>
+		<script src="NetworkManager.js"></script>
+
+		<script src="FileManager.js"></script>
+
+		<script src="SceneManager.js"></script>
+
+		<script src="GameManager.js"></script>
+
+
+		<link rel="stylesheet" type="text/css" href="Ragnarok.css" />
+
+		<script>
+
+			// Main application entry point
+
+			window.onload = (function() {
+
+				return function() {
+
+					ro_text_container = document.createElement('div');
+					ro_text_container.id = 'ro-text-container';
+
+					document.body.appendChild( ro_text_container );
+
+					(new Ragnarok( document )).init();
+
+					//document.body.appendChild( ragnarok.scene.domElement );
+					document.body.appendChild(Ragnarok.Instance.gui.domElement );
+
+
+				};
+
+			})();
+
+		</script>
+	</head>
+	<body>
+
+
+	</body>
+</html>

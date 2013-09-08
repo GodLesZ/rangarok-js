@@ -9,7 +9,9 @@ var Interface = {
 		Exit: 1,
 		Select: 2,
 		Cancel: 3,
-		Next: 4
+		Next: 4,
+		Create: 5,
+		Delete: 6
 	}
 };
 

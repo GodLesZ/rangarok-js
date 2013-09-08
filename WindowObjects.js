@@ -97,6 +97,10 @@ ServiceWindow.prototype.__onEvent = function( button ) {
 		&& this.list.__selected < this.list.__items.length
 			? this.list.__items[ this.list.__selected ].value
 			: -1;
+
+	if (value === -1) {
+		return;
+	}
 	
 	this.onEvent({
 		window: this,
@@ -412,13 +416,32 @@ var CharacterSelectWindow = function() {
 	buttonCancel.addBitmap( 'login_interface/btn_cancel_b.gif', 2 );
 	
 	this.addComponent( buttonCancel, InterfaceAlignment.Right, InterfaceAlignment.Bottom, -4, -4 );
-	
+
+	// Character creation, default not visible
+	this.__btnCreate = new InputButton( Interface.Button.Create, 42, 20 );
+	this.__btnCreate.__visible = false;
+	this.__btnCreate.addListener( this );
+	this.__btnCreate.addBitmap( 'login_interface/btn_make.gif', 0 );
+	this.__btnCreate.addBitmap( 'login_interface/btn_make_a.gif', 1 );
+	this.__btnCreate.addBitmap( 'login_interface/btn_make_b.gif', 2 );
+	this.addComponent( this.__btnCreate, InterfaceAlignment.Left, InterfaceAlignment.Bottom, 4, -4 );
+
+	// Character deletion, default not visible
+	this.__btnDelete = new InputButton( Interface.Button.Delete, 42, 20 );
+	this.__btnDelete.__visible = false;
+	this.__btnDelete.addListener( this );
+	this.__btnDelete.addBitmap( 'login_interface/btn_del.gif', 0 );
+	this.__btnDelete.addBitmap( 'login_interface/btn_del_a.gif', 1 );
+	this.__btnDelete.addBitmap( 'login_interface/btn_del_b.gif', 2 );
+	this.addComponent( this.__btnDelete, InterfaceAlignment.Left, InterfaceAlignment.Bottom, 4, -4 );
+
 };
 
 CharacterSelectWindow.prototype = Object.create( BaseWindow.prototype );
 
 CharacterSelectWindow.prototype.__onEvent = function( obj ) {
-	
+
+	var validCharSelected = false;
 	if( obj instanceof RagnarokCharacterComponent ) {
 		
 		this.__slot = obj.__charInfo.CharNum;
@@ -427,9 +450,10 @@ CharacterSelectWindow.prototype.__onEvent = function( obj ) {
 			// Display attributes
 			for( var i = 0; i < this.__attrLabels.length; i++ ) {
 				// Set __data directly, click event refreshes anyway...
-				this.__attrLabels[i].__data 
-					= obj.__charInfo[ this.__dispAttrs[i] ];
+				this.__attrLabels[i].__data = obj.__charInfo[ this.__dispAttrs[i] ];
 			}
+
+			validCharSelected = true;
 		}
 		
 		
@@ -442,7 +466,9 @@ CharacterSelectWindow.prototype.__onEvent = function( obj ) {
 		});
 		
 	}
-	
+
+	this.__btnCreate.__visible = (validCharSelected === false);
+	this.__btnDelete.__visible = !(validCharSelected === false);
 };
 
 CharacterSelectWindow.prototype.draw = function( context, sx, sy ) {

@@ -24,12 +24,12 @@ FileManager = {
 	},
 	
 	spritePath: 'sprite',
-	classPath: 'ÀÎ°£Á·',
-	bodyPath: '¸öÅë',
-	headPath: '¸Ó¸®Åë',
-	headTopPath: '¾Ç¼¼»ç¸®',
-	genderMale: '³²',
-	genderFemale: '¿©',
+	classPath: 'Ã€ÃÂ°Â£ÃÂ·',
+	bodyPath: 'Â¸Ã¶Ã…Ã«',
+	headPath: 'Â¸Ã“Â¸Â®Ã…Ã«',
+	headTopPath: 'Â¾Ã‡Â¼Â¼Â»Ã§Â¸Â®',
+	genderMale: 'Â³Â²',
+	genderFemale: 'Â¿Â©',
 	
 	getGenderName: function( sex ) {
 		return ( sex == 1 )

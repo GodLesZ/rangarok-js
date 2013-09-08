@@ -60,7 +60,11 @@ InputButton.prototype.onInputBlur = function() {
 };
 
 InputButton.prototype.draw = function( context, sx, sy ) {
-	
+
+	if( !this.__ready || !this.__visible ) {
+		return;
+	}
+
 	this.__bitmapIndex = this.__normalBitmapIndex;
 
 	if( this.__stateActive && this.__useActive ) {
