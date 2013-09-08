@@ -12,6 +12,9 @@ function InputButton( interfaceType, width, height ) {
 	this.__hoverBitmapIndex = 1;
 	this.__activeBitmapIndex = 2;
 	
+	this.__useHover = true;
+	this.__useActive = true;
+	
 	this.__stateActive = false;
 	this.__stateHover = false;
 
@@ -60,11 +63,11 @@ InputButton.prototype.draw = function( context, sx, sy ) {
 	
 	this.__bitmapIndex = this.__normalBitmapIndex;
 
-	if( this.__stateActive ) {
+	if( this.__stateActive && this.__useActive ) {
 		
 		this.__bitmapIndex = this.__activeBitmapIndex;
 		
-	} else if( this.__stateHover ) {
+	} else if( this.__stateHover && this.__useHover ) {
 	
 		this.__bitmapIndex = this.__hoverBitmapIndex;
 	

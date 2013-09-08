@@ -11,6 +11,11 @@ MapLoader.prototype.derefTempObjects = function() {
 
 MapLoader.prototype.reset = function() {
 	
+	this.mouseMoveEvent = function() {};
+	this.mouseDownEvent = function() {};
+	this.mouseUpEvent = function() {};
+	this.mouseScrollEvent = function() {};
+	
 	this.rswFileObject = null;
 	this.gndFileObject = null;
 	this.gatFileObject = null;
@@ -33,8 +38,10 @@ MapLoader.prototype.reset = function() {
 	this.mousePickingIntervalKey = null;
 	this.mouseGatPosition = new THREE.Vector2(0, 0);
 	
-	this.colorPickingInterval = 1000 / 10;
+	this.colorPickingInterval = 1000 / 5;
 	this.colorPickingFocusObjectId = 0;
+	
+	this.focusActiveActor = null;
 	
 	this._worldComponents = {};
 	
@@ -55,9 +62,8 @@ MapLoader.WorldMesh = {
 };
 
 MapLoader.prototype.registerWorldComponent = function(type, mesh) {
-
+	
 	if(type == MapLoader.WorldMesh.MODEL) {
-		console.warn("REGISTERING COMPONENT", mesh);
 		this._worldComponents[type].push(mesh);
 	} else {
 		this._worldComponents[type] = mesh;
@@ -93,7 +99,6 @@ MapLoader.prototype.showWorldComponent = function(type) {
 };
 
 MapLoader.prototype.loadRsw = function(rswBufferObject) {
-	console.log('Parsing RSW object');
 	this.rswFileObject = new RSW(rswBufferObject);
 };
 
@@ -190,8 +195,6 @@ MapLoader.prototype.generateAtlasTexture = function(textureNameList) {
 			var t = new THREE.Texture(canvas);
 			t.needsUpdate = true;
 			t.flipY = false;
-			
-			console.log("ADDING TEXTURE!!!", aId, t, atlasData);
 			
 			atlasData.textures.push(t);
 			
@@ -513,9 +516,9 @@ MapLoader.prototype.setupModelTextures = function() {
 	return batch.finally((function(atlasData) {
 		
 		if(loadedFromDisk)
-			console.log("Loaded texture atlas from disk in " + atlasData.textures.length + " files");
+			console.log("Info: Loaded texture atlas from disk in " + atlasData.textures.length + " files");
 		else 
-			console.log("Created texture atlas from remote files");
+			console.log("Info: Done processing texture atlas from remote files");
 			
 		this.rsmAtlasObject = atlasData;
 		
@@ -556,8 +559,6 @@ MapLoader.prototype.createGround = function() {
 	materials.push(new THREE.MeshBasicMaterial({ color: 0xff0000 }));
 	
 	var gndMaterialOffset = 1;
-	
-	console.log("CREATING GROUND", this.gndFileObject, this.gatFileObject);
 	
 	for( var i = 0; i < this.gndFileObject.textures.length; i++ ) {
 		
@@ -763,8 +764,6 @@ MapLoader.prototype.createGround = function() {
 		0, 0, 0, 1
 	) );
 	
-	console.log(groundGeometry);
-	
 	groundGeometry.dynamic = false;
 		
 	var mesh = new THREE.Mesh(groundGeometry, new THREE.MeshFaceMaterial(materials));
@@ -792,10 +791,167 @@ MapLoader.prototype.createGround = function() {
 	
 };
 
+var CoordinatePointer = function() {
+	
+	var geometry;
+	
+	geometry = new THREE.Geometry();
+	geometry.dynamic = true;
+	
+	var h = 1 / 9;
+	var w = 1 / 3;
+	
+	var f = geometry.faces;
+	var v = geometry.vertices;
+	
+	// TOP LEFT CORNER
+	
+	v.push( new THREE.Vector3( 0, 0, 0 ) ); // top left
+	v.push( new THREE.Vector3( w, 0, 0 ) ); // top right
+	v.push( new THREE.Vector3( w, h, 0 ) ); // bottom right
+	v.push( new THREE.Vector3( 0, h, 0 ) ); // bottom left
+	f.push( new THREE.Face4( 0, 1, 2, 3 ) );
+	
+	v.push( new THREE.Vector3( 0, h, 0 ) ); // top left
+	v.push( new THREE.Vector3( h, h, 0 ) ); // top right
+	v.push( new THREE.Vector3( h, w, 0 ) ); // bottom right
+	v.push( new THREE.Vector3( 0, w, 0 ) ); // bottom left
+	f.push( new THREE.Face4( 4, 5, 6, 7 ));
+	
+	// TOP RIGHT CORNER
+	v.push( new THREE.Vector3( 1 - w, 0, 0 ) ); // top left
+	v.push( new THREE.Vector3( 1, 0, 0 ) ); // top right
+	v.push( new THREE.Vector3( 1, h, 0 ) ); // bottom right
+	v.push( new THREE.Vector3( 1 - w, h, 0 ) ); // bottom left
+	f.push( new THREE.Face4( 8, 9, 10, 11 ) );
+	
+	v.push( new THREE.Vector3( 1 - h, h, 0 ) ); // top left
+	v.push( new THREE.Vector3( 1, h, 0 ) ); // top right
+	v.push( new THREE.Vector3( 1, w, 0 ) ); // bottom right
+	v.push( new THREE.Vector3( 1 - h, w, 0 ) ); // bottom left
+	f.push( new THREE.Face4( 12, 13, 14, 15 ) );
+	
+	// BOTTOM RIGHT CORNER
+	v.push( new THREE.Vector3( 1 - w, 1 - h, 0 ) ); // top left
+	v.push( new THREE.Vector3( 1, 1 - h, 0 ) ); // top right
+	v.push( new THREE.Vector3( 1, 1, 0 ) ); // bottom right
+	v.push( new THREE.Vector3( 1 - w, 1, 0 ) ); // bottom left
+	f.push( new THREE.Face4( 16, 17, 18, 19 ) );
+	
+	v.push( new THREE.Vector3( 1 - h, 1 - w, 0 ) ); // top left
+	v.push( new THREE.Vector3( 1, 1 - w, 0 ) ); // top right
+	v.push( new THREE.Vector3( 1, 1 - h, 0 ) ); // bottom right
+	v.push( new THREE.Vector3( 1 - h, 1 - h, 0 ) ); // bottom left
+	f.push( new THREE.Face4( 20, 21, 22, 23 ) );
+	
+	// BOTTOM LEFT CORNER
+	v.push( new THREE.Vector3( 0, 1 - h ) ); // top left
+	v.push( new THREE.Vector3( w, 1 - h ) ); // top right
+	v.push( new THREE.Vector3( w, 1, 0 ) ); // bottom right
+	v.push( new THREE.Vector3( 0, 1, 0 ) ); // bottom left
+	f.push( new THREE.Face4( 24, 25, 26, 27 ) );
+	
+	v.push( new THREE.Vector3( 0, 1 - w ) ); // top left
+	v.push( new THREE.Vector3( h, 1 - w ) ); // top right
+	v.push( new THREE.Vector3( h, 1 - h, 0 ) ); // bottom right
+	v.push( new THREE.Vector3( 0, 1 - h, 0 ) ); // bottom left
+	f.push( new THREE.Face4( 28, 29, 30, 31 ) );
+	
+	this.h = h;
+	this.w = w;
+	
+	this.geometry = geometry;
+	
+	this._last = {
+		h0: 0,
+		h1: 0,
+		h2: 0,
+		h3: 0
+	};
+	
+	this.mesh = new THREE.Mesh(geometry, new THREE.MeshBasicMaterial({
+		color: 0x30E0A0, // 0x2ddb9d?
+		opacity: 0.5,
+		transparent: true,
+		side: THREE.DoubleSide
+	}));
+	
+	this.mesh.frustumCulled = false;
+	
+};
+
+CoordinatePointer.prototype.setElevation = function( gatBlock ) {
+	
+	gatBlock = gatBlock || {};
+	
+	var h0 = gatBlock.upperLeftHeight || 0;
+	var h1 = gatBlock.upperRightHeight || 0;
+	var h2 = gatBlock.lowerLeftHeight || 0;
+	var h3 = gatBlock.lowerRightHeight || 0;
+	
+	if(	this._last.h0 == h0 && this._last.h1 == h1 &&
+		this._last.h2 == h2 && this._last.h3 == h3 ) {
+		// Skip if this tile block has same heights as the previous one
+		return;
+	}
+	
+	var v = this.geometry.vertices;
+	
+	var s, t, p, h;
+	
+	for(var i = 0; i < v.length; i++) {
+	
+		s = v[i].x;
+		t = v[i].y;
+		
+		if(s + t <= 1.0) {
+			
+			p = h0;
+			h = p + s * ( h1 - p ) + t * ( h2 - p );
+			
+		} else {
+
+			s = 1 - s;
+			t = 1 - t;
+
+			p = h3;
+			h = p + s * ( h2 - p ) + t * ( h1 - p );
+			
+		}
+		
+		v[i].z = -h;
+
+	}
+	
+	this.geometry.verticesNeedUpdate = true;
+	
+	this._last.h0 = h0;
+	this._last.h1 = h1;
+	this._last.h2 = h2;
+	this._last.h3 = h3;
+	
+};
+
 
 MapLoader.prototype.createCoordinatePointer = function() {
 
-	var len = this.gndFileObject.header.zoom / 2;
+	this.coordinatePointer = new CoordinatePointer();
+
+	//this.coordinatePointer = this.COORD.mesh;
+	
+	this.coordinatePointer.mesh.applyMatrix( new THREE.Matrix4(
+		0.5 * this.gndFileObject.header.zoom, 0, 0, 0,
+		0, 0, 1, 0,
+		0, 0.5 * this.gndFileObject.header.zoom, 0, 0,
+		0, 0, 0, 1
+	) );
+	
+	this.registerWorldComponent(MapLoader.WorldMesh.COORDPOINTER, this.coordinatePointer.mesh);
+	
+
+	return;
+
+	var len = 1 / 2;
 	
 	var geo = new THREE.Geometry();
 	
@@ -860,19 +1016,19 @@ MapLoader.prototype.createCoordinatePointer = function() {
 	v.push( new THREE.Vector3( 0, len - h, 0 ) ); // bottom left
 	f.push( new THREE.Face4( 28, 29, 30, 31 ) );
 	
-	geo.applyMatrix( new THREE.Matrix4(
-		1, 0, 0, 0,
-		0, 0, 1, 0,
-		0, 1, 0, 0,
-		0, 0, 0, 1
-	) );
-	
 	this.coordinatePointer = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({
-		color: 0x2ddb9d,
+		color: 0x30E0A0, // 0x2ddb9d?
 		opacity: 0.5,
 		transparent: true,
 		side: THREE.DoubleSide
 	}));
+	
+	this.coordinatePointer.applyMatrix( new THREE.Matrix4(
+		this.gndFileObject.header.zoom, 0, 0, 0,
+		0, 0, 1, 0,
+		0, this.gndFileObject.header.zoom, 0, 0,
+		0, 0, 0, 1
+	) );
 
 	this.registerWorldComponent(MapLoader.WorldMesh.COORDPOINTER, this.coordinatePointer);
 
@@ -945,32 +1101,6 @@ MapLoader.prototype.setupWorldLighting = function() {
 	
 	
 };
-
-var BoundingBox = function() {
-	this.max = new THREE.Vector3(-9999, -9999, -9999);
-	this.min = new THREE.Vector3(9999, 9999, 9999);
-};
-
-BoundingBox.prototype.setMax = function(v) {
-	this.max.max(v);
-};
-
-BoundingBox.prototype.setMin = function(v) {
-	this.min.min(v);
-};
-
-BoundingBox.prototype.__defineGetter__("offset", function() {
-	return this.max.clone().add(this.min).divideScalar(2);
-});
-
-BoundingBox.prototype.__defineGetter__("range", function() {
-	return this.max.clone().sub(this.min).divideScalar(2);
-});
-
-BoundingBox.prototype.__defineGetter__("center", function() {
-	return this.min.clone().add(this.range);
-});
-
 
 MapLoader.prototype.rsmMeshNodeCalculateBoundingBox = function(rsmNode, base_matrix) {
 	
@@ -1460,7 +1590,7 @@ MapLoader.prototype.setupWorld = function() {
 	
 	//Tick("Creating coordinate pointer");
 	
-	this.scene.add(this.coordinatePointer);
+	this.scene.add(this.coordinatePointer.mesh);
 	
 	this.setupWorldLighting();
 
@@ -1469,8 +1599,6 @@ MapLoader.prototype.setupWorld = function() {
 };
 
 MapLoader.prototype.setupScene = function() {
-
-	console.log('Loading scene!');
 	
 	var width = window.innerWidth;
 	var height = window.innerHeight;
@@ -1517,20 +1645,60 @@ MapLoader.prototype.positionToMapCoordinate = function(v) {
 	);
 };
 
+// GAT x,y coordinates to world position
 MapLoader.prototype.mapCoordinateToPosition = function(x, y) {
-	return new THREE.Vector3(
-		(x << 0) * this.gndFileObject.header.zoom,
-		0,
-		-((y << 0) + 1.0 ) * this.gndFileObject.header.zoom
-	);
-};
-
-MapLoader.prototype.mapCoordinateToPosition2 = function(x, y) {
 	return new THREE.Vector3(
 		x/2 * this.gndFileObject.header.zoom,
 		0,
-		-(y/2+1) * this.gndFileObject.header.zoom
+		-(y/2) * this.gndFileObject.header.zoom
 	);
+};
+
+// Get the height at point (s, t) in GAT cell (x, y)
+// s, t in range [0, 1]
+MapLoader.prototype.subGatPositionToMapHeight = function(x, y, s, t) {
+
+	var block = this.gatFileObject.getBlock(x, y);
+	
+	if(!block) {
+		return 0;
+	}
+	
+	if(block.upperLeftHeight == block.upperRightHeight 
+		== block.lowerLeftHeight == block.lowerRightHeight ) {
+		return block.upperLeftHeight;
+	}
+	
+	// upperLeft
+	// + ---- + -upperRight
+	// |    / |
+	// |   /  |
+	// |  /   |
+	// | /    |
+	// + ---- + -lowerRight
+	// \
+	//  lowerLeft
+	
+	var origin;
+	var height;
+	
+	if(s + t <= 1.0) {
+		
+		origin = block.upperLeftHeight;
+		height = origin + s * (block.upperRightHeight - origin) + t * ( block.lowerLeftHeight - origin );
+		
+	} else {
+
+		s = 1 - s;
+		t = 1 - t;
+
+		origin = block.lowerRightHeight;
+		height = origin + s * (block.lowerLeftHeight - origin) + t * ( block.upperRightHeight - origin );
+		
+	}
+	
+	return height;
+	
 };
 
 MapLoader.prototype.getGatTileLightLevel = function(x, y) {
@@ -1624,255 +1792,167 @@ MapLoader.prototype.getEntitiesGatPosition = function(x, y) {
 
 MapLoader.CameraFOV = 15;
 
-MapLoader.CameraDistanceZ = 182;
-MapLoader.CameraDistanceXYRatio = 0.99;
-
-MapLoader.CameraDistanceXYZRatio = MapLoader.CameraDistanceZ / MapLoader.CameraDistanceXYRatio;
-
-MapLoader.CTargetShiftMin = 0.9;
-MapLoader.CTargetShiftMax = 1.55;
-
-MapLoader.CLerpRatio = 0.06;
-
-MapLoader.CCameraScrollSensitivity = 0.5;
-
-MapLoader.prototype.setCameraPosition = function() {
-	
-	//this.camera.centerPosition = this.mapCoordinateToPosition2(x, y);
-	
-	var pos = this.cCameraPosition;
-	
-	var h = this.cShift * MapLoader.CameraDistanceZ;
-	
-	this.camera.position = new THREE.Vector3(
-		pos.x + h / MapLoader.CameraDistanceXYRatio * Math.cos(this.cRotation),
-		h  + pos.y,
-		pos.z + h / MapLoader.CameraDistanceXYRatio * Math.sin(this.cRotation)
-	);
-	
-	this.camera.lookAt(pos);
-	
-};
-
-MapLoader.prototype.updateCameraPosition = function() {
-	this.setCameraPosition();
-};
-
 MapLoader.prototype.bindCamera = function(object) {
-	this.cCameraTarget = object;
-	this.cTargetPosition = object.position;
-	this.cCameraPosition.copy(object.position);
+
+	// set to prevent false errors in picking
+	this.mouseGatPosition.x = object.gatPosition.x;
+	this.mouseGatPosition.y = object.gatPosition.y;
+
+	this.controls.bindActor( object );
+	
 };
+
+MapLoader.prototype.isFocusOnActor = function() {
+	return this.colorPickingFocusObjectId > 0;
+};
+
+MapLoader.prototype.getActorInFocus = function() {
+	
+	if( !this.isFocusOnActor() ) {
+		return null;
+	}
+	
+	return this.getEntity( this.colorPickingFocusObjectId );
+};
+
+MapLoader.prototype.getActiveActor= function() {
+	return this.focusActiveActor;
+};
+
+MapLoader.prototype.setActiveActor = function( value ) {
+	this.focusActiveActor = value;
+};
+
+MapLoader.prototype.OnMouseMove = function( e ) {
+	
+	this.setMousePosition( e.x, e.y );
+	
+	// Update the camera controls
+	this.controls.OnMouseMove( e );
+	
+	return true;
+	
+};
+
+MapLoader.prototype.OnMouseUp = function( e ) {
+	
+	if( e.button == 2 ) {
+		
+		this.controls.DisableRotation();
+		
+	} else if( e.button == 0 ) {
+		this.movementTimeStamp = false;
+		this.movementGatLocation = false;
+		
+	}
+	
+	
+};
+
+MapLoader.prototype.moveToMouseLocation = function() {
+	
+	this.movementTimeStamp = Date.now();
+	this.movementGatLocation = this.mouseGatPosition.clone();
+	
+	this.controls.target.MoveToGatPosition(this.mouseGatPosition.x, this.mouseGatPosition.y);
+	
+	setTimeout((function() {
+	
+		if(this.movementTimeStamp && this.movementGatLocation) {
+			if(Date.now() - this.movementTimeStamp >= 400) {			
+				//if(this.mouseGatPosition.x != this.movementGatLocation.x
+				//	&& this.mouseGatPosition.y != this.movementGatLocation.y)
+					this.moveToMouseLocation();
+				//else {
+				//	console.log("Position is same as before");
+				//}
+			} else {
+				//console.warn("Several movement timers?");
+			}
+		}
+		
+	}).bind( this ), 500);
+	
+	
+};
+
+MapLoader.prototype.OnMouseDown = function( e ) {
+	
+	if( e.button === InputEvent.Button.RIGHT ) {
+		
+		this.controls.EnableRotation();
+		
+	} else if(e.button === InputEvent.Button.LEFT ) {
+	
+		// Clicking on a SpriteActor
+		if(this.colorPickingFocusObjectId > 0) {
+			console.log(this.colorPickingFocusObjectId);
+			return;
+		}
+	
+		console.log(this.mouseGatPosition.x, this.mouseGatPosition.y);
+		
+		// move camera target
+		if( this.controls.target != null ) {
+			
+			if(this.gatFileObject.hasProperty(this.mouseGatPosition.x, this.mouseGatPosition.y, GAT.BlockProperties.WALKABLE)) {
+				this._fireEvent("OnPCRequestMove", this.mouseGatPosition.clone());
+			}
+			
+			if( e.shift ) {
+				// Teleport
+				this.controls.target.SetGatPosition(this.mouseGatPosition.x, this.mouseGatPosition.y);
+			} else {
+				// Walk to position
+				//console.log("Walking there from " + this.controls.target.gatPosition.x + ", " + this.controls.target.gatPosition.y);
+				this.moveToMouseLocation();
+			}
+			
+		}
+		
+	}
+		
+};
+
 
 MapLoader.prototype.start = function() {
 	
+	this.controls = new RagnarokControls( this.camera, this.renderer.domElement );
 	
-	this.cRotate = false;
-	this.cRotation = Math.PI/2;
-	this.cRotationSpeed = 0;
-	this.cShift = MapLoader.CTargetShiftMin;
-	this.cTargetShift = 1.0;
-	this.cLastPos = null;
+	if(IndoorRswTable[ this.getMapName() ] === true) {
 	
-	this.cDeltaCutoff = 0.0025;
+		var toRad = Math.PI / 180;
+		
+		this.controls.SetRotationRange(
+			115 * toRad, 150 * toRad
+		);
+	}
 	
-	var startX = 10 * this.gatFileObject.width / 2 << 0;
-	var startY = 10 * this.gatFileObject.height / 2 << 0;
-	
-	
-	this.cCameraPosition = new THREE.Vector3(startX, 0, startY);
-	this.cTargetPosition = new THREE.Vector3(startX, 0, startY);
-	
-	this.camera.centerPosition = this.cCameraPosition;
-	
-	var coord = this.positionToMapCoordinate(this.cTargetPosition.x, this.cTargetPosition.y);
-	
-	this.cTargetHeight = this.gatFileObject.getBlockAvgDepth(coord.x, coord.y);
-	this.cHeight = this.cTargetHeight;
-	
-	this.cCameraTarget = null;
-	
-//if(false){//if-false
 	
 	document.body.oncontextmenu = function(e) {
 		e.stopPropagation();
 		return false;
 	}
 	
-	this.CRotDampening = 0.85;
-	this.CRotAcceleration = 0.15;
-	
-	
-	var cameraUpdate = (function(dt) {
-	
-		if(this.cCameraTarget) {
-		
-			var dr = dt / 10;
-		
-			this.cTargetHeight = -this.gatFileObject.getBlockAvgDepth(this.cCameraTarget.gatPosition.x, this.cCameraTarget.gatPosition.y);
-			
-			//this.cHeight += (this.cTargetHeight - this.cHeight) * 0.05;
-			this.cRotationSpeed = this.CRotDampening * this.cRotationSpeed;
-			this.cRotation += dr * this.cRotationSpeed;
-			
-			var cPosXDt = (this.cTargetPosition.x - this.cCameraPosition.x) * MapLoader.CLerpRatio;
-			var cPosYDt = (this.cTargetHeight - this.cCameraPosition.y) * MapLoader.CLerpRatio;
-			var cPosZDt = (this.cTargetPosition.z - this.cCameraPosition.z) * MapLoader.CLerpRatio;
-			
-			this.cCameraPosition.x += Math.abs(cPosXDt) > this.cDeltaCutoff ? dr * cPosXDt : 0;
-			this.cCameraPosition.y += Math.abs(cPosYDt) > this.cDeltaCutoff ? dr * cPosYDt : 0;
-			this.cCameraPosition.z += Math.abs(cPosZDt) > this.cDeltaCutoff ? dr * cPosZDt : 0;
-			
-			this.cTargetShift = Math.max(
-				MapLoader.CTargetShiftMin, 
-				Math.min(
-					MapLoader.CTargetShiftMax, 
-					this.cTargetShift
-				)
-			);
-			
-			cameraUpdate
-						
-			var cShiftDt = (this.cTargetShift - this.cShift) * MapLoader.CLerpRatio;
-			this.cShift += Math.abs(cShiftDt) > this.cDeltaCutoff ? dr * cShiftDt : 0;
-			
-			
-			this.updateCameraPosition();
-		}
-	
-	}).bind(this);
-	
-//}//if-false
-	
-	
 	window.addEventListener('mousewheel', (function(e) {
 		
-		this.cTargetShift += MapLoader.CCameraScrollSensitivity * e.wheelDeltaY / this.renderer.domElement.height;
+		this.controls.Zoom( e.wheelDeltaY );
 		
 	}).bind(this))
 	
-	var focusEntityId = -1;
-	
-	window.addEventListener('mousemove', (function(e) {
-	
-		this.setMousePosition(e.clientX, e.clientY);
-		
-		if(this.colorPickingFocusObjectId > 0) {
-			
-			var entity = this.getEntity(this.colorPickingFocusObjectId);
-			
-			entity.showNameLabel();
-			
-			if(focusEntityId > 0 && focusEntityId != this.colorPickingFocusObjectId) {
-				this.getEntity(focusEntityId).hideNameLabel();
-			}
-			
-			focusEntityId = this.colorPickingFocusObjectId;
-			
-		} else if(focusEntityId > 0) {
-			this.getEntity(focusEntityId).hideNameLabel();
-		}
-		
-		if(!this.cLastPos) {
-			this.cLastPos = new THREE.Vector2(e.clientX, e.clientY);
-		} else {
-			var now = new THREE.Vector2(e.clientX, e.clientY);
-			var delta = now.clone().sub(this.cLastPos);
-			this.cLastPos = now;
-			
-			if(this.cRotate) {
-				
-				if(e.shiftKey) {
-					//this.cShift += 2 * delta.y / this.renderer.domElement.height;
-					MapLoader.CameraDistanceXYRatio += 0.5 * delta.y / this.renderer.domElement.height;
-					MapLoader.CameraDistanceZ = MapLoader.CameraDistanceXYRatio * MapLoader.CameraDistanceXYZRatio;
-					
-					//MapLoader.CameraDistanceXYZRatio = MapLoader.CameraDistanceZ / MapLoader.CameraDistanceXYRatio;
-				}
-				
-				//this.cRotation += 2 * Math.PI * delta.x / this.renderer.domElement.width;
-				this.cRotationSpeed += 2 * Math.PI * delta.x / this.renderer.domElement.width * this.CRotAcceleration;
-				//this.setCameraPosition(this.mouseGatPosition.x, this.mouseGatPosition.y);			
-				//this.updateCameraPosition();
-			}
-		}
-	}).bind(this));
-	
-	window.addEventListener('mouseup', (function(e) {
-		
-		if(e.button == 0) {			
-		} else if(e.button == 2) {
-			this.cRotate = false;
-		}
-		
-	}).bind(this));
-	
-
-	window.addEventListener('mousedown', (function(e) {
-		
-		if(e.button == 0) {
-		
-			// Clicking on a SpriteActor
-			if(this.colorPickingFocusObjectId > 0) {
-				console.log(this.colorPickingFocusObjectId);
-				return;
-			}
-		
-			console.log(this.mouseGatPosition.x, this.mouseGatPosition.y, this.gatFileObject.getBlock(this.mouseGatPosition.x, this.mouseGatPosition.y).type);
-			
-			//this.setCameraPosition(this.mouseGatPosition.x, this.mouseGatPosition.y);
-			//this.updateCameraPosition();
-			
-			if(false && e.shiftKey) {
-				// change position
-				//this.cTargetPosition.x = this.mouseGatPosition.x;
-				//this.cTargetPosition.y = this.mouseGatPosition.y;
-				//this.cTargetHeight = this.gatFileObject.getBlockAvgDepth(this.cTargetPosition.x, this.cTargetPosition.y);
-				
-				// List entities in 5*5 area
-				
-				for(var x = -5; x <= 5; x++) {
-					for(var y = -5; y <= 5; y++) {
-						var d = this.getEntitiesGatPosition(this.mouseGatPosition.x + x, this.mouseGatPosition.y + y);
-						if(d instanceof Array && d.length) {
-							console.log(this.mouseGatPosition.x + x, this.mouseGatPosition.y + y, d);
-						}
-					}
-				}
-				
-				
-			} else {
-				// move camera
-				if(this.cCameraTarget != null) {
-					
-					if(this.gatFileObject.hasProperty(this.mouseGatPosition.x, this.mouseGatPosition.y, GAT.BlockProperties.WALKABLE)) {
-						this._fireEvent("OnPCRequestMove", this.mouseGatPosition.clone());
-					}
-					
-					//console.log("Light: " + this.getGatTileLightLevel(this.mouseGatPosition.x, this.mouseGatPosition.y));
-					
-					if(e.shiftKey) {
-						// Teleport
-						this.cCameraTarget.SetGatPosition(this.mouseGatPosition.x, this.mouseGatPosition.y);
-					} else {
-						// Walk to position
-						this.cCameraTarget.MoveToGatPosition(this.mouseGatPosition.x, this.mouseGatPosition.y);
-					}
-					
-				}
-			}
-			
-		} else if(e.button == 2) {
-			this.cRotate = true;
-		}
-		
-	}).bind(this));
+	this.mouseMoveEvent = this.OnMouseMove.bind( this );
+	this.mouseUpEvent = this.OnMouseUp.bind( this );
+	this.mouseDownEvent = this.OnMouseDown.bind( this );
 
 
 	// Append to DOM
+	
+	this.renderer.domElement.style.position = "fixed";
+	this.renderer.domElement.style.top = "0px";
+	this.renderer.domElement.style.left = "0px";
+	this.renderer.domElement.style.zIndex = "1";
+	
 	document.body.appendChild(this.renderer.domElement);
-
-	console.log("Starting to render " + this.worldResourceName);
 	
 	this.running = true;
 	
@@ -1880,100 +1960,96 @@ MapLoader.prototype.start = function() {
 	var ref = this;
 	
 	var projector = new THREE.Projector();
-	var ray = new THREE.ReusableRay();
 	var direction = new THREE.Vector3();
 	
 	// Start the mouse picking
 	
 	this.mousePickingIntervalKey = setInterval((function() {
 		
-		direction.x = this.mouse3.x;
-		direction.y = this.mouse3.y;
-		direction.z = 1.0;
+		// Unproject direction
+		
+		direction.set(
+			this.mouse3.x,
+			this.mouse3.y,
+			1.0
+		);
 		
 		projector.unprojectVector(direction, this.camera);
 		
-		direction.sub(this.camera.position);
+		direction.sub( this.camera.position );
+		
 		direction.normalize();
 		
-		ray.setSource(this.camera.position, direction);
-		
-		var start = ray.origin;
-		var unit = ray.direction;
+		// Ray is cast from our camera
+		var start = this.camera.position;
+		// Step in direction from mouse
+		var unit = direction;
 		
 		// Max test iterations
-		var max = 500 * this.cShift;
+		var max = 500 * this.controls.zoom;
 		
         var cx = -1;
         var cz = -1;
         var c2x = 0;
         var c2z = 0;
         
+        var cxd, czd, cxm, czm;
+        
+        var cpt = new THREE.Vector3;
+        
 		for (var i = 0 ; i < max ; i++) {
              
-             var cpt = new THREE.Vector3(
+             cpt.set(
 				start.x + unit.x * i,
 				start.y + unit.y * i,
 				start.z + unit.z * i
              );
              
-             cx = (cpt.x / this.gndFileObject.header.zoom) << 0;
-             cz = (cpt.z / -this.gndFileObject.header.zoom) << 0;
-             c2x = (cpt.x / this.gndFileObject.header.zoom) - cx;
-             c2z = (cpt.z / -this.gndFileObject.header.zoom) - cz;
+             cx = 2 * cpt.x / this.gndFileObject.header.zoom;
+             cz = -2 * cpt.z / this.gndFileObject.header.zoom;
              
-             var tile = this.gatFileObject.getBlock(2*cx, 2*cz);
+             cxd = cx << 0;
+             czd = cz << 0;
+             
+             cxm = cx - cxd;
+             czm = cz - czd;
+             
+             var tile = this.gatFileObject.getBlock( cxd, czd );
              
              if( tile ) {
-				var h = - this.gatFileObject.getBlockAvgDepth( 2*cx, 2*cz );
-				if( Math.abs(h - cpt.y) < 0.5)
+				
+				//var h = - this.gatFileObject.getBlockAvgDepth( cxd, czd );
+				var h = - this.subGatPositionToMapHeight( cxd, czd, cxm, czm );
+				
+				if( Math.abs(h - cpt.y) < 0.5 )
 					break;
              }
         }
          
-        var x = 2*cx;
-        var z = 2*cz - 1;
-         
-		// Adjust for error margin
-		if( Math.abs(c2x) > 0.5 ) x += 1;
-		if( Math.abs(c2z) > 0.5 ) z += 1;
+        var x = cxd;
+        var z = czd;
+        
+		// Get distance of picked cell from our current cells
+		
+		var distX0 = this.mouseGatPosition.x - x; // pointer
+		var distY0 = this.mouseGatPosition.y - z;
+		var distX1 = this.controls.target.gatPosition.x - x; // player
+		var distY1 = this.controls.target.gatPosition.y - z;
+		
+		var maxDist = 60 / this.controls.zoom;
+		
+		if( ( distX0 * distX0 + distY0 * distY0 > maxDist * maxDist ) && ( distX1 * distX1 + distY1 * distY1 > maxDist * maxDist ) ) {
+			// Ignore result if picked cell is too far away from current pointer location and player
+			return;
+		}
+		
+		if(this.mouseGatPosition.x == x && this.mouseGatPosition.y == z) {
+			// Same tile as before. No need to do more
+			return;
+		}
 		
 		this.mouseGatPosition.x = x;
-		this.mouseGatPosition.y = z + 1;
-		
-		// Mouse pick entities in position
-		//var entities = [];
-		var intersections = [];
-		
-		if(false) {
-		
-		for(var dx = -5; dx <= 5; dx++) {
-			for(var dy = -5; dy <= 5; dy++) {
-				var entities = this.getEntitiesGatPosition(this.mouseGatPosition.x + dx, this.mouseGatPosition.y + dy);
-				if(entities instanceof Array && entities.length) {
-					//console.log(this.mouseGatPosition.x + x, this.mouseGatPosition.y + y, d);
-					//Array.prototype.push.apply(entities, d);
-					
-					for(var i = 0; i < entities.length; i++) {
-						var entity = entities[i];
-						var distance = ray.distanceFromIntersection(ray.origin, ray.direction, entity.position);
-						if(distance < 10.0) {
-							//console.log(entity);
-						}
-					}
-					
-					
-				}
-			}
-		}
-		
-		}
-		
-		//var intersects = ray.intersectObjects(entities);
-		
-		//if(intersects.length > 0) {
-		//	console.log(intersects);
-		//}
+		this.mouseGatPosition.y = z;
 		
 		// Set coordinate pointer		
 		if(this.gatFileObject.getBlock(this.mouseGatPosition.x, this.mouseGatPosition.y)) {
@@ -1985,10 +2061,18 @@ MapLoader.prototype.start = function() {
 			))
 				return;
 			
-			this.coordinatePointer.position = this.mapCoordinateToPosition2(x, z);
+			//this.coordinatePointer.position = this.mapCoordinateToPosition(x, z);
+			
+			var coord = this.mapCoordinateToPosition(x, z);
+			
+			this.coordinatePointer.mesh.position.x = coord.x;
+			this.coordinatePointer.mesh.position.y = 1.0;
+			this.coordinatePointer.mesh.position.z = coord.z;
+			
+			this.coordinatePointer.setElevation( this.gatFileObject.getBlock(x, z) );
 			
 			// Adjust so it's a little above ground :)
-			this.coordinatePointer.position.y -= this.gatFileObject.getBlockAvgDepth(this.mouseGatPosition.x, this.mouseGatPosition.y) - 0.5;
+			//this.coordinatePointer.mesh.position.y -= this.gatFileObject.getBlockAvgDepth(this.mouseGatPosition.x, this.mouseGatPosition.y) - 0.5;
 			
 			//coordPointer.geometry.vertices[0].y = -tile.lowerLeftHeight; // top left
 			//coordPointer.geometry.vertices[1].y = -tile.lowerRightHeight; // top right
@@ -1999,47 +2083,45 @@ MapLoader.prototype.start = function() {
 		
 	}).bind(this), this.mousePickingInterval);
 	
-	
-	// Add camera
-	
-	//var controls = new THREE.CustomControls(this.camera, document);
-	//controls.movementSpeed = 40;
-	
 	// Start the animation loop
 	
 	var lastColorPick = Date.now();
 	var colorPick = true;
 	
-	(function animate() {
+	console.log("Info: Welcome to " + this.worldResourceName);
+	
+	var animate;
+	
+	animate = (function() {
 		
 		var now = Date.now()
 		var dt = now - last;
 		//controls.update( dt*0.01 );
 		last = now;
 		
-		if(ref.running) {
+		if(this.running) {
 			
-			cameraUpdate(dt);
+			this.controls.Update( dt );
 			
-			ref.renderer.render(ref.scene, ref.camera);
+			this.renderer.render(this.scene, this.camera);
 			
-			if(colorPick && now - lastColorPick >= ref.colorPickingInterval) {
+			if(colorPick && now - lastColorPick >= this.colorPickingInterval) {
 			
 				//console.log("color picking");
 			
 				mapLoader.setWorldDisplay(false); // hide all world objects
 				THREE.Sprite.PickingMode = 1; // uuugh -_-"
 				
-				var gl = ref.renderer.getContext();
+				var gl = this.renderer.getContext();
 				
-				ref.renderer.render(ref.scene, ref.camera, ref.colorPickingRenderTarget);
+				this.renderer.render(this.scene, this.camera, this.colorPickingRenderTarget);
 				
 				var u32 = new Uint8Array(4);
 				
 				// #ICEICE PICK
 				gl.readPixels(
-					ref.mouse2.x, 
-					ref.colorPickingRenderTarget.height - ref.mouse2.y,
+					this.mouse2.x, 
+					this.colorPickingRenderTarget.height - this.mouse2.y,
 					1, 1, 
 					gl.RGBA, 
 					gl.UNSIGNED_BYTE, 
@@ -2048,19 +2130,49 @@ MapLoader.prototype.start = function() {
 				
 				var id = (u32[0] << 16) | (u32[1] << 8) | (u32[2]);
 				
-				ref.colorPickingFocusObjectId = id;
+				this.colorPickingFocusObjectId = id;
 				
 				mapLoader.setWorldDisplay(true); // restore world objects
 				THREE.Sprite.PickingMode = 0;
 				
 				lastColorPick = now;
+				
+				// Swap focus on actors
+				
+				var curr = this.getActorInFocus();
+				var prev = this.getActiveActor();
+				
+				if( curr !== null ) {
+					
+					if( curr !== prev ) {
+						
+						curr.showNameLabel();
+						
+						if( prev !== null ) {
+							prev.hideNameLabel();
+						}
+						
+						this.setActiveActor( curr );
+					}
+					
+				} else if( prev !== null ) {
+					
+					this.setActiveActor( null );
+					
+					prev.hideNameLabel();
+					
+				}
+				
+				// 
+				
 			}
-			
 			
 			requestAnimationFrame(animate);
 		}
 		
-	})();
+	}).bind(this);
+
+	animate();
 
 };
 

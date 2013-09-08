@@ -1,8 +1,14 @@
-function Ragnarok( interface, network ) {
+function Ragnarok( document ) {
+	
+	if(!(this instanceof Ragnarok)) {
+		return new Ragnarok;
+	}
 	
 	this.scene = new MapLoader();
-	this.gui = new InterfaceManager();
+	this.gui = new InterfaceManager( document );
 	this.network = new NetworkManager();
+	
+	this.input = new InputEventHandler( document );
 	
 	window.network = this.network;
 	window.map = this.scene;
@@ -41,8 +47,12 @@ Ragnarok.prototype.init = function() {
 	
 	this.gui.init();
 	
+	this.input.attachEventListener("mousemove", this.gui.mouseMoveEvent );
+	this.input.attachEventListener("mouseup", this.gui.mouseUpEvent );
+	this.input.attachEventListener("mousedown", this.gui.mouseDownEvent );
+	
 	/*
-	this.chatWindow = this.gui.getWindow( Interface.ChatWindow );
+	this.chatWindow = this.gui.create( Interface.ChatWindow );
 	
 	this.chatWindow.onEvent = (function(str) {
 		if(str)
@@ -178,7 +188,7 @@ Ragnarok.prototype.onStateCharSelect = function() {
 	
 	//return;
 
-	var charSelectWindow = this.gui.getWindow( Interface.CharSelect );
+	var charSelectWindow = this.gui.create( Interface.CharSelect );
 	
 	var accountData = this.network.session.charInfo;
 	
@@ -243,7 +253,7 @@ Ragnarok.prototype.onStateServiceSelected = function( serverId ) {
 // Called when client receives the server list
 Ragnarok.prototype.onStateServiceSelectReady = function() {
 	
-	var serviceWindow = this.gui.getWindow( Interface.ServiceWindow );
+	var serviceWindow = this.gui.create( Interface.ServiceWindow );
 	
 	var services = this.network.session.ServerList;
 	
@@ -319,7 +329,7 @@ Ragnarok.prototype.onStateDoLogin = function( username, password) {
 // Called when client is ready to perform login
 Ragnarok.prototype.onStateLoginReady = function() {
 	
-	var loginWindow = this.gui.getWindow( Interface.LoginWindow );
+	var loginWindow = this.gui.create( Interface.LoginWindow );
 	
 	loginWindow.onEvent = this.onEvent( function( event ) {
 				

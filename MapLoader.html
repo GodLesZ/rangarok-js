@@ -4,39 +4,78 @@
 		<meta http-equiv="content-type" content="text/html; charset=utf-8">
 		<meta name="viewport" content="width=device-width, initial-scale=1.0 maximum-scale=1, user-scalable=no" />
 		
+		<!-- Commons -->
+		
 		<script src="common.js"></script>
 		<script src="prototype.js"></script>
+		<script src="Deferred.js"></script>
 		
 		<script src="settings.js"></script>
 		
+		<!-- Tables -->
+		
+		<script src="Tables/VarEnum.js"></script>
 		<script src="Tables/mp3nametable.js"></script>
+		<script src="Tables/IndoorRswTable.js"></script>
 		<script src="Tables/fogparametertable.js"></script>
 		<script src="Tables/ClassResNameTable.js"></script>
 		<script src="Tables/pcjobtable.js"></script>
 		<script src="Tables/AccessoryIdTable.js"></script>
 		<script src="Tables/AccessoryNameTable.js"></script>
 		<script src="Tables/HeadIdTable.js"></script>
-		<script src="SoundPlayer.js"></script>
+		
+		<!-- File formats -->
 		
 		<script src="FileFormat/rsm.js"></script>
 		<script src="FileFormat/gat.js"></script>
 		<script src="FileFormat/gnd.js"></script>
 		<script src="FileFormat/rsw.js"></script>
-		<script src="FileFormat/sprparser.js"></script>
-		<script src="FileFormat/actparser.js"></script>
+		<script src="FileFormat/SprParser.js"></script>
+		<script src="FileFormat/ActParser.js"></script>
 		
-		<script src="include/three.58.js"></script>
-		<script src="include/ReusableRay.js"></script>
-		<script src="include/CustomControls.js"></script>
-		
-		<script src="Deferred.js"></script>
+		<!-- Helpers -->
 		
 		<script src="ResourceLoader.js"></script>
+		
+		<!-- Input -->
+		
+		<script src="InputEventHandler.js"></script>
+		
+		<!-- Interface -->
+		
+		<script src="Interface/InterfaceCommons.js"></script>
+		
+		<script src="Interface/InterfaceComponent.js"></script>
+		<script src="Interface/BaseWindow.js"></script>
+		
+		<script src="Interface/SelectionList.js"></script>
+		<script src="Interface/InputButton.js"></script>
+		
+		<script src="Interface/CanvasTextfield.js"></script>
+		<script src="Interface/DOMTextInput.js"></script>
+		
+		<script src="WindowObjects.js"></script>
+		
+		<script src="InterfaceManager.js"></script>
+		
+		
+		<!-- Sound -->
+		
+		<script src="SoundPlayer.js"></script>
+		
+		<!-- 3D -->
+		
+		<script src="graphics/include/BoundingBox.js"></script>
+		<script src="include/three.58.js"></script>
+		<script src="RagnarokControls.js"></script>
+		
 		<script src="MapLoader.js"></script>
 		
 		<script src="SpriteActor.js"></script>
 		
 	</head>
+	
+	<link rel="stylesheet" type="text/css" href="Ragnarok.css" />
 	
 	<style>
 	
@@ -47,11 +86,13 @@
 	html, body {
 		width: 100%;
 		height: 100%;
+		background: #fff;
 	}
 	
 	body {
-		background: url("load_kr/loading02.jpg") no-repeat center center fixed;
-		background-size: cover;
+		/* background: url("load_kr/loading02.edit.jpg") center center fixed no-repeat;
+		background-size: contain; */
+		background: 0xfff;
 	}
 	
 	* {
@@ -117,151 +158,208 @@ window.onload = function() {
 		start();
 	}
 
-};
+};//<script>
 
 var start = function() {
 	
-	//<script>
+	///sprite\ÀÌÆÑÆ®\emotion.act
 	
-	//var width = window.innerWidth;
-	//var height = window.innerHeight;
+	// Input
 	
-	//var renderer = this.renderer = new THREE.WebGLRenderer({
-	//	antialias: true
-	//});
+	var eventHandler = new InputEventHandler( window.document );
 	
-	//var scene = this.scene = new THREE.Scene();
+	// Interface
 	
-	//var viewAngle = 45;
-	//var viewAngle = -340;
-	//var viewAngle = 20;
+	var ro_text_container = document.createElement('div');
+	ro_text_container.id = 'ro-text-container';
+	document.body.appendChild( ro_text_container );
 	
-	//var camera = this.camera = new THREE.PerspectiveCamera( viewAngle, width / height, 0.1, 10000 );
+	var gui = new InterfaceManager( document );
 	
-	//renderer.setClearColor(0x000000);
+	gui.init();
 	
-	//renderer.setSize(width, height);
+	gui.setBackground('load_kr/loading02.edit.jpg');
 	
-	//var a = new THREE.AxisHelper();
+	//var loginWindow = gui.create( Interface.LoginWindow );
 	
-	//a.scale = new THREE.Vector3(100, 100, 100);
-	
-	//scene.add(a);
-	
-	//camera.position.set(0, 20, 20);
-	//camera.lookAt(new THREE.Vector3(0,0,0));
-	
-	//var geometry = new THREE.Geometry();
-	//var warpGeometry = new THREE.SphereGeometry(10, 20, 20);
-	
-	//for(var p = 0, d = 0; d < 4; d++) {
-	//	for(i = 0; i < 360; i += 30) {
-			
-	//		var x0 = Math.cos(i * Math.PI / 180);
-	//		var y0 = Math.sin(i * Math.PI / 180);
-	//		var x1 = Math.cos((i + 30) * Math.PI / 180);
-	//		var y1 = Math.sin((i + 30) * Math.PI / 180);
-			
-	//		var r = d * 2.0;
-	//		var h = 0.5;
-			
-	//		geometry.vertices.push(new THREE.Vector3(x0 * d, 0, y0 * d));
-	//		geometry.vertices.push(new THREE.Vector3(x0 * r, h, y0 * r));
-	//		geometry.vertices.push(new THREE.Vector3(x1 * r, h, y1 * r));
-	//		geometry.vertices.push(new THREE.Vector3(x1 * d, 0, y1 * d));
-			
-	//		var face = new THREE.Face4(p, p + 1, p + 2, p + 3);
-			
-	//		geometry.faceVertexUvs[0].push([
-	//			new THREE.Vector2( 0, 0 ),
-	//			new THREE.Vector2( 0, 1 ),
-	//			new THREE.Vector2( 1, 1 ),
-	//			new THREE.Vector2( 1, 0 )
-	//		]);
-			
-	//		geometry.faces.push(face);
-			
-	//		p += 4;
-			
-	//	}
-	//}
-	
-	//geometry.faceVertexUvs[1] = geometry.faceVertexUvs[0];
-	
-	//var material = new THREE.MeshBasicMaterial({
-	//	transparent: true,
-		//color: 0xff0000,
-	//	side: THREE.DoubleSide,
-		//opacity: 0.5,
-	//	alphaTest: 0.5,
-	//	map: ResourceLoader.getTexture("effect/ring_blue.png"),
-		//map: ResourceLoader.getTexture("effect/alpha_down.png"),
-	//})
-	
-	//var mesh = new THREE.Mesh(geometry, material);
-	
-	//scene.add(mesh);
-	
-	//setInterval(function() {
-	//	mesh.rotation.y += 0.01;
-	//	mesh.scale.z -= 0.01;
-	//	mesh.scale.x -= 0.01;
-	//	if(mesh.scale.z < 0) mesh.scale.z = 1.0;
-	//	if(mesh.scale.x < 0) mesh.scale.x = 1.0;
+	//loginWindow.onEvent = function( e ) {
 		
-	//}, 25);
+	//	monster(e.username);
+		
+	//};
 	
-	//(function animate() {
-	//	requestAnimationFrame(animate);
-	//	renderer.render(scene, camera);
-	//})();
+	//gui.add( loginWindow, 0, 0);
 	
-	//document.body.appendChild(renderer.domElement);
+	var chatWindow = gui.create( Interface.ChatWindow );
 	
-	//return;
+	window.chatWindow = chatWindow;
 	
-//SpriteActor.prototype.SetAttachment = function(attachmentType, sprFileObject, actFileObject) {
-//SpriteActor.prototype.addAttachmentToScene = function(scene, attachmentType) {
+	chatWindow.onEvent = (function() {
 	
-	//ResourceLoader.createFile = function(dirName, fileName, fileData, type);
-	//ResourceLoader.getFile = function(dirName, fileName, returnType);
-	/*
-	ResourceLoader.ready
-		.then(ResourceLoader.createFile.bind(null, 
-			"test", 
-			"test.txt", 
-			"data data data", 
-			"text/plain"
-		))
-		.then(function(status) {
+		var jsMode = false;
+		var fog = true;
+	
+		return function(str) {
 			
-			console.log(status);
+			if(!str) return;
 			
-			if(status) {
+			chatWindow.pushHistory( str );
 			
-				ResourceLoader.getFile("test", "test.txt", "text")
-					.then(function(data) {
-						console.log(data);
-					});
+			if(jsMode && str != "/javascript") {
+				
+				chatWindow.writeLine( str, "#66ff66" );
+				
+				try {
+					
+					var ret = (new Function( str ))();
+					
+					var p = ret;
+					
+					if( ret === undefined ) p = "undefined";
+					if( ret === null ) p = "null";
+					
+					chatWindow.writeLine( p, "#ffffff" );
+					
+				} catch( e ) {
+					chatWindow.writeLine( e, "#ff0000" );
+				}
+				
+			} else if(str[0] == "/") {
 			
+				var m = str.match(/\/([a-z0-9]*)( ([a-z0-9_]+))?( ([a-z0-9_]+))?/);
+			
+				var cmd = m[1];
+				var arg = m[3];
+				var arg2 = m[5];
+			
+				chatWindow.writeLine( str, "#66ff66" );
+				
+				switch(cmd) {
+					case "jump":
+						if(arg && arg2 && !arg.match(/[^\d]/) && !arg2.match(/[^\d]/)) {
+							var jx = parseInt(arg, 10);
+							var jy = parseInt(arg2, 10);
+							chatWindow.writeLine( "Jumping to " + jx + ", " + jy, "#ffffff" );
+							s.SetGatPosition( jx, jy );
+						} else {
+							chatWindow.writeLine( "Invalid arguments", "#ffffff" );
+						}
+					break;
+					case "fog":
+						if(fog) {
+							mapLoader.fogOff();
+							chatWindow.writeLine( "Fog off", "#ffffff" );
+							fog = false;
+						} else {
+							mapLoader.fogOn();
+							chatWindow.writeLine( "Fog on", "#ffffff" );
+							fog = true;
+						}
+					break;
+					case "monster":
+					case "mob":
+					case "spawn":
+					case "summon":
+						if(!arg) {
+							chatWindow.writeLine( "Need name of monster to spawn", "#ff0000" );
+						} else {
+							
+							var n = 1;
+							
+							if(arg2 && !arg2.match(/[^\d]/)) {
+								n = parseInt(arg2, 10);
+							}
+							
+							chatWindow.writeLine( "Spawning monster" + (n > 1 ? "s" : "") + "...", "#ffffff" );
+							
+							while(n--) {
+								monster(arg);
+							}
+							
+						}
+					break;
+					case "job":
+						if(!arg) {
+							chatWindow.writeLine( "Need job ID", "#ff0000" );
+						} else {
+							chatWindow.writeLine( "Changing job...", "#ffffff" );
+							setclass(parseInt(arg, 10));
+						}
+					break;
+					case "bangbang":
+						s.standingDirection++;
+					break;
+					case "bgm":
+						
+						Settings.music = !Settings.music;
+					
+						if(Settings.music) {
+							SoundPlayer.unpauseBgm();
+							chatWindow.writeLine( "Music on", "#ffffff" );
+						} else {
+							SoundPlayer.pauseBgm();
+							chatWindow.writeLine( "Music off", "#ffffff" );
+						}
+						
+					break;
+					case "party2":
+						chatWindow.writeLine( "AAAAAAAaaaaaahhh!!!", "#ff0000" );
+						allplayers();
+					break;
+					case "party":
+						chatWindow.writeLine( "Inviting friends...", "#ffffff" );
+						someplayers();
+					break;
+					case "javascript":
+						if(jsMode) {
+							chatWindow.writeLine( "Console: JavaScript off", "#ffffff" );
+							jsMode = false;
+						} else {
+							chatWindow.writeLine( "Console: JavaScript on", "#ffffff" );
+							jsMode = true;
+						}
+					break;
+					case "h":
+					case "help":
+						chatWindow.writeLine( "Commands:", "#ffffff" );
+						chatWindow.writeLine( "/bangbang - Turn clockwise", "#ffffff" );
+						chatWindow.writeLine( "/bgm - Toggle background music", "#ffffff" );
+						chatWindow.writeLine( "/fog - Toggle fog", "#ffffff" );
+						chatWindow.writeLine( "/javascript - Toggle JavaScript console", "#ffffff" );
+						chatWindow.writeLine( "/job [id] - Set job", "#ffffff" );
+						chatWindow.writeLine( "/jump [x] [y] - Jump to position", "#ffffff" );
+						chatWindow.writeLine( "/monster [name] [count] - Spawn monster by sprite name", "#ffffff" );
+						chatWindow.writeLine( "/party /party2 - If you're lonely", "#ffffff" );
+					break;
+					default:
+						chatWindow.writeLine( "Unknown command. Try /help", "#ffffff" );
+						
+				}
+				 
+			} else {
+				
+				chatWindow.writeLine( mapLoader.controls.target.name + ": " + str, "#66ff66" );
+				mapLoader.controls.target.displayMessageLabel( mapLoader.controls.target.name + ": " + str );
+				
 			}
 			
-		});
-	
-	return;
-	*/
-	//ResourceLoader.getRsm("´ÏÇÃÇìÀÓ/´ÏÇÃÇìÀÓ-¸¶³à¼º01.rsm").then(function(data) {
-	//	RsmMesh(new RSM(data));
-	//});
-	
-	//return;
+		}
+	})().bind(this);
 		
-	window.document.body.innerHTML = "\
-		<div id='b_loading' style='position: absolute; top: 50%; left: 50%; width: 64px; height: 64px; margin-left: -32px; margin-top: -32px;'>\
-			<img src='assets/loading64-2.gif' />\
-		</div>";//<script>
+	document.body.appendChild( gui.domElement );
 	
-	var bLoading = document.getElementById("b_loading");
+	eventHandler.attachEventListener("mousemove", gui.mouseMoveEvent );
+	eventHandler.attachEventListener("mouseup", gui.mouseUpEvent );
+	eventHandler.attachEventListener("mousedown", gui.mouseDownEvent );
+	
+	//console.log( gui.domElement );
+	window.gui = gui;
+	
+	//gui.add(chatWindow, InterfaceAlignment.Left, InterfaceAlignment.Bottom);
+	//return;
+
+	
+	// Setup map loader
 	
 	var mapLoader = new MapLoader();
 	
@@ -269,49 +367,87 @@ var start = function() {
 	
 	var obj = new SpriteActor(mapLoader);
 	
+	obj.name = "curiosity";
+	
 	var start = Date.now();
+	
 	
 	var mapName = location.href.match(/map=([\w\d_]+.rsw)/i);
 	
 	mapLoader
-		.loadMap((mapName !== null && mapName[1]) || "te_prt_gld.rsw")
+		.loadMap((mapName !== null && mapName[1]) || "c_tower1.rsw")
 		.then(function(d) {
 			
 			console.log("Info: Loading finished in " + (Date.now() - start) + "ms");
 			
-			// Hide loading stuff
-			document.body.removeChild(bLoading);
-			
 			// Start rendering
 			mapLoader.start();
 			
+			// Remove background from GUI
+			gui.setBackground( null );
+			gui.add(chatWindow, InterfaceAlignment.Left, InterfaceAlignment.Bottom);
+			
+			chatWindow.writeLine( "Welcome to " + mapLoader.getMapName(), "#66ff66" );
+			chatWindow.writeLine( "Use /help to see available commands", "#66ff66" );
+			
+			// Add minimap
+			
+			var minimap = new Minimap(128, 128);
+			
+			minimap.setMap( mapLoader.getMapName() );
+			
+			gui.add(minimap, InterfaceAlignment.Right, InterfaceAlignment.Top, -10, 10);
+			
+			obj.attachEventListener("OnGatPositionChange", function( pos ) {
+				minimap.setPosition(pos.x, pos.y, mapLoader.gatFileObject.width, mapLoader.gatFileObject.height, obj.standingDirection);
+			});
+			
 			// Play music
-			//SoundPlayer.playBGM(mp3NameTable[mapLoader.getMapName()]);
+			if(Settings.music)
+				SoundPlayer.playBgm(mp3NameTable[mapLoader.getMapName()]);
 			
 			// Set position
-			obj.SetGatPosition(44, 136);
+			//obj.SetGatPosition(44, 136);
+			obj.SetGatPosition(262, 85);
 			
 			window.s = obj;
 			
 			// Bind camera to player
 			mapLoader.bindCamera(obj);
+			
+			// Setup events
+			
+			eventHandler.attachEventListener("mousemove", mapLoader.mouseMoveEvent );
+			eventHandler.attachEventListener("mouseup", mapLoader.mouseUpEvent );
+			eventHandler.attachEventListener("mousedown", mapLoader.mouseDownEvent );
+			
 		})
 		
-		.then(lol.bind(this, obj, "sprite/ÀÎ°£Á·/¸öÅë/³²/»óÀÎ_³²", SpriteActor.Attachment.BODY))
-		.then(lol.bind(this, obj, "sprite/ÀÎ°£Á·/¸Ó¸®Åë/³²/7_³²", SpriteActor.Attachment.HEAD))
+		.then(lol.bind(this, obj, "sprite/ÀÎ°£Á·/¸öÅë/³²/" + ClassResNameTable[14] + "_³²", SpriteActor.Attachment.BODY))
+		.then(lol.bind(this, obj, "sprite/ÀÎ°£Á·/¸Ó¸®Åë/³²/" + HeadIdTable[1][ parseInt(Math.random() * HeadIdTable[1].length ) ] + "_³²", SpriteActor.Attachment.HEAD))
 		.then(lol.bind(this, obj, "sprite/shadow", SpriteActor.Attachment.SHADOW))
 		//.then(lol.bind(this, obj, "sprite/¾Ç¼¼»ç¸®/³²/³²_Åä³¢¸Ó¸®¶ì", SpriteActor.Attachment.TOP))
 		.then(function() {
 			
-			settop(AccessoryIdTable.ACCESSORY_SAHT_GAHT);
+			//settop(AccessoryIdTable.ACCESSORY_SAHT_GAHT);
 			setmid(AccessoryIdTable.ACCESSORY_ELF_SUNGLASS);
+			//settop(AccessoryIdTable.ACCESSORY_HELM)
+			settop(AccessoryIdTable.ACCESSORY_ANGEL_MIXHELM)
+			//setmid(AccessoryIdTable.ACCESSORY_FIN_HELM)
 			
 			setInterval(function() {
+			
+				//console.log(mapLoader.camera);
+			
 				obj.Update(mapLoader.camera);
 			}, 10);
 		
 		});
 };
+
+//function makePC = function() {
+	
+//};
 
 function say(message) {
 	s.displayMessageLabel(message);
@@ -347,12 +483,25 @@ function monster(monster_id, x, y) {
 	var m = spawn("sprite/¸ó½ºÅÍ/" + monster_id, true, x, y);
 	
 	m.type = SpriteActor.Types.MONSTER;
-	m.name = monster_id;
+	m.name = monster_id.split("_").map(function(str) { return str == "of" ? str : str.length == 1 ? str.toUpperCase() + "." : str[0].toUpperCase() + str.substring(1); }).join(" ");
 	
 	return m;
 }
 
-function allplayer() {
+function someplayers() {
+	
+	var k = 0;
+	
+	for(var i in ClassResNameTable) {
+		if(i < 50) {
+			setTimeout(player.bind(this, i), k * 350);
+			k++;
+		}
+	};
+	
+};
+
+function allplayers() {
 	
 	var k = 0;
 	
@@ -370,16 +519,28 @@ function player(class_id) {
 	lol(actor, "sprite/ÀÎ°£Á·/¸Ó¸®Åë/³²/" + HeadIdTable[1][ parseInt(Math.random() * HeadIdTable[1].length ) ] + "_³²", SpriteActor.Attachment.HEAD);
 	
 	actor.type = SpriteActor.Types.PLAYER;
-	actor.name = "job_" + class_id;
+	//actor.name = "job_" + class_id;
+	
+	var names = ["Andromouse","Fat beard","Chello","Muncholini","Miredrilith","Doalle","Falejar",
+	"Siemen","LORD_OF_DREAD","Gritty","Denyris","Popkin","Olive","LordWinchester",
+	"YoyoGogo","Woag","Lord Butthole", "Chicken", "Drunk Dwarf",
+	"DA-MAAN", "x~Crowz~x", "Kingdom Whopper", "RAGE MASTER", "Naruto67",
+	"aznDragon", "Specter", "~*Princess*~", "ComputerPlayer"];
+	
+	actor.name = arrRand( names );
 	
 	return actor;
 	
 };
 
+var arrRand = function( a ) { return a[ Math.round( Math.random() * (a.length - 1) ) ]; };
+
 function spawn(path, move, gat_x, gat_y) {
 
 	var task = Deferred();
 	var actor = new SpriteActor(mapLoader);
+	
+	var s = mapLoader.controls.target;
 	
 	gat_x = gat_x || (s.gatPosition.x + Math.round(5 - Math.random() * 10));
 	gat_y = gat_y || (s.gatPosition.y + Math.round(5 - Math.random() * 10));
@@ -398,26 +559,33 @@ function spawn(path, move, gat_x, gat_y) {
 		"come at me bro",
 		"testing....",
 		"this is horrible",
+		"just walkin a bit",
 		"i'm not botting....",
 		"chill man its cool",
+		"just chill out",
 		"what?",
+		"hey. PM me pls,,,",
 		"idk yo",
 		"huehuehuehue",
 		"brasil #1 !!!!!",
 		"^___^",
 		"xD that so funny",
 		"like wut?",
-		"hmmmmmmmmmmmm",
+		"hmmmmmmm",
+		"yeah. so what we do?",
 		"this game is stupid",
 		"selling gr card 1M PM ME!!",
-		"hey guys"
+		"Is this like fake Ragnarok?",
+		"hey guys",
+		"higher rates please",
+		"AAH BUGS EVERYWHERE",
 	];
 	
 	if(move) setInterval((function(obj) {
 		return function() {
 			
 			if(Math.random() < 0.05 && obj.type == SpriteActor.Types.PLAYER) {
-				obj.displayMessageLabel(obj.name + ": " + lines[ Math.round( Math.random() * (lines.length - 1) ) ]);
+				obj.displayMessageLabel(obj.name + ": " + arrRand(lines) );
 			}
 			
 			if(Math.random() < 0.5) {			

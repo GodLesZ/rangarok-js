@@ -488,22 +488,110 @@ CharacterSelectWindow.prototype.addCharacter = function( charInfo ) {
 	
 };
 
+var ScrollBar = function(width, height, scrollButtonHeight, scrollBarHeight, scrollUp, scrollDown, scrollBg, scrollBar ) {
+	
+	BaseWindow.call(this, width, height);
+	
+	this.backgroundRepeat = true;
+	
+	this.addBitmap( scrollBg, 0 );
+	
+	var bScrollUp = new InputButton( Interface.Button.Select, width, scrollButtonHeight );
+	var bScrollDown = new InputButton( Interface.Button.Select, width, scrollButtonHeight );
+	
+	bScrollUp.__useHover = false;
+	bScrollDown.__useHover = false;
+	bScrollUp.__useActive = false;
+	bScrollDown.__useActive = false;
+	
+	bScrollUp.addBitmap( scrollUp, 0 );
+	bScrollDown.addBitmap( scrollDown, 0 );
+	
+	this.addComponent( bScrollUp, InterfaceAlignment.Left, InterfaceAlignment.Top, 0, 0 );
+	this.addComponent( bScrollDown, InterfaceAlignment.Left, InterfaceAlignment.Bottom, 0, 0 );
+	
+};
+
+ScrollBar.prototype = Object.create( BaseWindow.prototype );
+
+
 var ChatWindow = function() {
 
 	BaseWindow.call( this, 600, 195);
 
 	this.lines = Array(10);
-	this.numLines = 10;
 	this.alphaColor = 0.0;
 	this.addBitmap('basic_interface/dialog_bg.gif', 1);
 
+	this.history = [];
+	this.historyOffset = 0;
+
+	// Scroll bar
+	
+	var scroll = new ScrollBar(
+		10, this.height - 25, // w, h
+		10, 4, // buttonHeight, barHeight
+		"basic_interface/dialscr_up.gif",
+		"basic_interface/dialscr_down.gif",
+		"basic_interface/dialscr_bg2.gif",
+		"basic_interface/dialsrc_bar.gif"
+	);
+
+	this.addComponent( scroll, InterfaceAlignment.Right, InterfaceAlignment.Top, -7, 0 );
+
+	// Buttons right
+	
+	// Right
+	var buttonSelect = new InputButton( Interface.Button.Select, 11, 11 );
+	
+	buttonSelect.addListener( this );
+	
+	buttonSelect.addBitmap( 'basic_interface/sys_base_off.gif', 0 );
+	buttonSelect.addBitmap( 'basic_interface/sys_base_on.gif', 1 );
+	buttonSelect.addBitmap( 'basic_interface/sys_base_on.gif', 2 );
+	
+	this.addComponent( buttonSelect, InterfaceAlignment.Right, InterfaceAlignment.Bottom, -4, -6 );
+
+	// Left
+	var buttonSelect = new InputButton( Interface.Button.Select, 11, 11 );
+	
+	buttonSelect.addListener( this );
+	
+	buttonSelect.addBitmap( 'basic_interface/sys_base_off.gif', 0 );
+	buttonSelect.addBitmap( 'basic_interface/sys_base_on.gif', 1 );
+	buttonSelect.addBitmap( 'basic_interface/sys_base_on.gif', 2 );
+	
+	this.addComponent( buttonSelect, InterfaceAlignment.Right, InterfaceAlignment.Bottom, -17, -6 );
+	
+	// Main text input
+
 	this.inputField = new DOMTextInput(460, 15, 'text');
 	
-	this.inputField.domElement.onkeydown = (function(e) {
+	this.inputField.domElement.onkeyup = (function(e) {
 		if(e.keyCode == 13) {
 			this.__onEvent(this.inputField.data);
 			this.inputField.data = "";
 		}
+		
+		if(e.keyCode == 38 || e.keyCode == 40) { // UP
+			
+			if(this.history.length < 1)
+				return;
+		
+			var t = this.historyOffset;
+		
+			if(e.keyCode == 40) {
+				this.historyOffset = Math.max(this.historyOffset - 1, 1);
+			} else {
+				this.historyOffset = Math.min(this.historyOffset + 1, this.history.length );
+			}
+			
+			if(this.historyOffset !== t) {
+				this.inputField.data = this.history[ this.history.length - this.historyOffset ];
+				this.inputField.domElement.select();			
+			}
+		}
+		
 	}).bind(this);
 	
 	this.addComponent(this.inputField, '115px', InterfaceAlignment.Bottom, null, -4);
@@ -512,31 +600,48 @@ var ChatWindow = function() {
 
 ChatWindow.prototype = Object.create( BaseWindow.prototype );
 
-ChatWindow.prototype.__onEvent = function(str) {
-	this.onEvent(str);
+ChatWindow.prototype.__onEvent = function(e) {	
+	
+	if(typeof e == "string") {
+		this.onEvent(e);
+	}
+	else console.log(e);
 };
 
-ChatWindow.prototype.writeLine = function(str) {
+ChatWindow.prototype.pushHistory = function(str) {
+	this.history.push(str);
+	this.historyOffset = 0;
+};
+
+ChatWindow.prototype.writeLine = function(str, color) {
 	this.lines.shift();
-	this.lines.push(str);
+	this.lines.push({
+		message: str,
+		color: color ? color : "#fff"
+	});
 	this.refresh();
 };
 
 ChatWindow.prototype.draw = function(ctx, sx, sy) {
 
-	BaseWindow.prototype.draw.call(this, ctx, sx, sy);
-	
 	ctx.globalAlpha = 0.5;
 	ctx.fillStyle = "black";
 	ctx.fillRect(sx + 3, sy, this.width - 6, this.height);
 	ctx.globalAlpha = 1.0;
 	
-	ctx.fillStyle = "white";
-	ctx.font = "16px Arial";
+	ctx.font = Settings.fontSize + "px " + Settings.fontFamily;
 	ctx.textBaseline = "bottom";
 	
-	for(var i = 0; i < this.numLines - 1; i++) {
-		ctx.fillText(this.lines[this.numLines - i - 1] || "", sx + 10, sy + this.height - 30 - 18 * i);
+	for(var i = 0; i < this.lines.length - 1; i++) {
+		
+		var line = this.lines[this.lines.length - i - 1];
+	
+		if( line ) {
+			
+			ctx.fillStyle = line.color;
+			ctx.fillText(line.message, sx + 10, sy + this.height - 30 - 18 * i);
+		}
+	
 	}
 	
 	var inputBg = this.__bitmaps[1];
@@ -544,6 +649,84 @@ ChatWindow.prototype.draw = function(ctx, sx, sy) {
 	if(inputBg)
 		ctx.drawImage(inputBg, sx, sy + this.height - inputBg.height);
 	
+	BaseWindow.prototype.draw.call(this, ctx, sx, sy);
+	
+};
+
+var Minimap = function(width, height) {
+
+	BaseWindow.call( this, width, height );
+	
+	this.processBackground = true;
+	
+	this.gatX = 0;
+	this.gatY = 0;
+	this.gatWidth = 400;
+	this.gatHeight = 400;
+	this.gatDirection = 0;
+
+};
+
+Minimap.prototype = Object.create( BaseWindow.prototype );
+
+Minimap.prototype.setMap = function( mapName ) {
+
+	var path = Settings.dataFolderUri + "texture/À¯ÀúÀÎÅÍÆäÀÌ½º/map/";
+
+	this.addBitmap(path + mapName.replace(".rsw", ".bmp"), 0);
+
+};
+
+Minimap.prototype.setPosition = function(x, y, width, height, direction) {
+	
+	this.gatX = x;
+	this.gatY = y;
+	this.gatWidth = width;
+	this.gatHeight = height;
+	this.gatDirection = direction;
+	
+	this.__needsUpdate = true;
+	this.refresh();
+	
+};
+
+Minimap.prototype.draw = function( ctx, sx, sy ) {
+
+	BaseWindow.prototype.draw.call(this, ctx, sx, sy);
+	
+	// Draw marker
+
+	ctx.save();
+	
+	ctx.fillStyle = "#ffffff";
+	ctx.stokeStyle = "#000000";
+	
+	//ctx.fillRect(, , 3, 3 );
+	
+	var x = sx + this.width * this.gatX / this.gatWidth;
+	var y = sy + this.height * (1.0 - this.gatY / this.gatHeight);
+	
+	//ctx.translate(-x, -y);
+	
+	ctx.translate(x, y);
+	ctx.rotate( 45 * this.gatDirection * Math.PI / 180 );
+	
+	ctx.beginPath();
+	
+	ctx.moveTo(0, 0);
+	ctx.lineTo(0 - 5, 0 - 4);
+	ctx.lineTo(0 + 0, 0 + 6);
+	ctx.lineTo(0 + 5, 0 - 4);
+	ctx.lineTo(0 + 0, 0 + 0);
+	
+	ctx.stroke();
+	ctx.fill();
+	
+	ctx.closePath();
+	
+	
+	ctx.restore();
+
 };
 
 //function LoadingScreen() {

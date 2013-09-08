@@ -36535,7 +36535,7 @@ THREE.ShaderSprite = {
 					"finalPosition.xy += rotatedPosition * ( sizeAttenuation == 1 ? 1.0 : finalPosition.z );",
 
 					// #MODIFIED!
-					//"finalPosition.z -= 0.008;",
+					"finalPosition.z -= 0.008;",
 
 				"}",
 
@@ -36553,9 +36553,14 @@ THREE.ShaderSprite = {
 				//"gl_Position.z += 0.003 + 0.01 * ( 0.05 * uv.y * uvScale.y - alignment.y ) / alignment.y;",
 				//"gl_Position.z += - 0.02 + 0.15 * ( 0.05 * uv.y * uvScale.y - alignment.y ) / (alignment.y * uvScale.y);",
 				
-				"if(zIndex >= 1.0)",
+				//"if(zIndex >= 1.0)",
 				
-					"gl_Position.z += 0.003 + 0.01 * ( 0.05 * uv.y * uvScale.y - alignment.y ) / alignment.y - 0.00001 * zIndex;",
+					//"gl_Position.z += 0.003 + 0.01 * ( 0.05 * uv.y * uvScale.y - alignment.y ) / alignment.y - 0.00001 * zIndex;",
+					//"gl_Position.z += 0.2 * ( 0.0 * alignment.y + uv.y * uvScale.y ) / ( scale.y );",
+					//"gl_Position.z -= 0.0005 * alignment.y * scale.y * ( 1.0 + uv.y );",
+					
+					//height = alignment.y + uv.y * alignment;
+					
 
 			"}"
 

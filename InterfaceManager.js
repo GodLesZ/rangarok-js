@@ -6,7 +6,7 @@ InputType = {
 	ButtonDown: false
 };
 
-function InterfaceManager() {
+function InterfaceManager( document ) {
 	
 	this.domElement = document.createElement('canvas');
 	
@@ -14,50 +14,21 @@ function InterfaceManager() {
 	
 	this.context = this.domElement.getContext('2d');
 	
-	var interfaceManager = this;
-	
-	window.onresize = function() {
-		console.log('aaaaaaaaaaaaaaaaaaaaaaaaaa');
-		setTimeout(function() {
-			interfaceManager.refresh( true );
-		}, 100 );
-	
-	};
-	
-	document.body.onmousemove = function( e ) {
-	
-		var x = e.clientX * ( interfaceManager.domElement.width / window.innerWidth  );
-		var y = e.clientY * ( interfaceManager.domElement.height / window.innerHeight );
+	//window.onresize = (function() {
 		
-		//console.log( x, y, interfaceManager.__objects[0].x );
-	
-		interfaceManager.onInputMove({
-			x: x,
-			y: y
-		});
-	};
-	
-	document.body.onmousedown = function( e ) {
-	
-		var x = e.clientX * ( interfaceManager.domElement.width / window.innerWidth  );
-		var y = e.clientY * ( interfaceManager.domElement.height / window.innerHeight );
-	
-		interfaceManager.onInputClick({
-			x: x,
-			y: y
-		}, e.button, InputType.ButtonDown );
-	};
-	
-	document.body.onmouseup = function( e ) {
+	//	console.log('Info: Interface refreshing from resize');
 		
-		var x = e.clientX * ( interfaceManager.domElement.width / window.innerWidth  );
-		var y = e.clientY * ( interfaceManager.domElement.height / window.innerHeight );
+	//	setTimeout((function() {
+			
+	//		this.refresh( true );
+			
+	//	}).bind( this ), 100 );
 	
-		interfaceManager.onInputClick({
-			x: x,
-			y: y
-		}, e.button, InputType.ButtonUp );
-	};
+	//}).bind( this );
+	
+	this.mouseDownEvent = this.OnMouseDown.bind( this );
+	this.mouseUpEvent = this.OnMouseUp.bind( this );
+	this.mouseMoveEvent = this.OnMouseMove.bind( this );
 	
 };
 
@@ -77,7 +48,33 @@ InterfaceManager.Window = function( windowObject, x, y ) {
 	
 };
 
-InterfaceManager.prototype = {};
+
+InterfaceManager.prototype.OnMouseMove = function( e ) {
+
+	return this.onInputMove({
+		x: e.x,
+		y: e.y
+	});
+
+};
+
+InterfaceManager.prototype.OnMouseDown = function( e ) {
+
+	return this.onInputClick({
+		x: e.x,
+		y: e.y
+	}, e.button, InputType.ButtonDown );
+	
+};
+
+InterfaceManager.prototype.OnMouseUp = function( e ) {
+
+	return this.onInputClick({
+		x: e.x,
+		y: e.y
+	}, e.button, InputType.ButtonUp );
+	
+};
 
 InterfaceManager.prototype.init = function() {
 	
@@ -96,8 +93,10 @@ InterfaceManager.prototype.init = function() {
 	this.domElement.width = window.innerWidth;
 	this.domElement.height = window.innerHeight;
 	
-	this.domElement.style.width = "100%";
-	this.domElement.style.height = "100%";
+	//this.domElement.style.width = "100%";
+	//this.domElement.style.height = "100%";
+	
+	this.domElement.style.zIndex = "2";
 	
 	this.setBackground('load_kr/bgi_temp.bmp');
 	
@@ -133,15 +132,19 @@ InterfaceManager.prototype.refresh = function( clear ) {
 
 InterfaceManager.prototype.setBackground = function( uri ) {
 	
+	if( uri === null ) {
+		
+		this.__background = null;
+		this.refresh( true );
+		
+		return;
+	}
+	
 	this.__background = new Image;
 	
-	this.__background.onload = (function( obj ) {
-		
-		return function() {
-			obj.refresh( true );
-		}
-		
-	})( this );
+	this.__background.onload = (function() {
+		this.refresh( true );
+	}).bind( this );
 	
 	this.__background.src = uri;
 	
@@ -180,21 +183,8 @@ InterfaceManager.prototype.draw = function() {
 	
 };
 
-InterfaceManager.prototype.getWindow = function( id ) {
-	
+InterfaceManager.prototype.create = function( id ) {
 	return new InterfaceManager.InterfaceWindowObjects[id];
-	
-	//switch( id ) {
-	//	case Interface.LoginWindow:
-	//		return new LoginWindow;
-	//	case Interface.ServiceWindow:
-	//		return new ServiceWindow;
-	//	case Interface.CharSelect:
-	//		return new 
-	//	default:
-	//		return null;
-	//}
-	
 };
 
 InterfaceManager.prototype.add = function( window, sx, sy, adjustX, adjustY ) {
@@ -243,6 +233,8 @@ InterfaceManager.prototype.remove = function( windowObject ) {
 
 InterfaceManager.prototype.onInputMove = function( event ) {
 	
+	var stop_propagate = false;
+	
 	if( this.__dragObject !== null ) {
 		
 		// We're dragging an object
@@ -265,7 +257,7 @@ InterfaceManager.prototype.onInputMove = function( event ) {
 		
 		this.refresh( true );
 		
-		return true;
+		stop_propagate = true;
 		
 	} else {
 		
@@ -284,6 +276,9 @@ InterfaceManager.prototype.onInputMove = function( event ) {
 			&&	event.x < window.x + window.object.width 
 			&&	event.y > window.y
 			&&	event.y < window.y + window.object.height ) {
+				
+				// Chat window isn't allowed to take mouse movement
+				stop_propagate = !(window.object instanceof ChatWindow) || stop_propagate;
 				
 				hoverObject = window.object.onInputHover({
 					x: event.x - window.x,
@@ -311,17 +306,17 @@ InterfaceManager.prototype.onInputMove = function( event ) {
 			
 			this.__hoverObject = hoverObject;
 			
-			return true;
-			
 		}
 		
 	}
 	
-	return false;
+	return stop_propagate;
 	
 };
 
 InterfaceManager.prototype.onInputClick = function( event, button, state ) {
+
+	var stop_propagate = false;
 
 	if( this.__dragObject !== null && state === InputType.ButtonUp ) {
 		
@@ -329,7 +324,10 @@ InterfaceManager.prototype.onInputClick = function( event, button, state ) {
 		
 		this.refresh();
 		
-		return true;
+		
+		stop_propagate = true;
+		
+		return stop_propagate;
 		
 	}
 	
@@ -344,6 +342,8 @@ InterfaceManager.prototype.onInputClick = function( event, button, state ) {
 		&&	event.x < window.x + window.object.width 
 		&&	event.y > window.y
 		&&	event.y < window.y + window.object.height ) {
+		
+			stop_propagate = true;
 		
 			// Re-order windows
 			
@@ -391,12 +391,12 @@ InterfaceManager.prototype.onInputClick = function( event, button, state ) {
 			
 			this.refresh();
 			
-			return true;
+			break;
 		
 		}
 	
 	}
 	
-	return false;
+	return stop_propagate;
 
 };

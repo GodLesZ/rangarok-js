@@ -3,6 +3,9 @@ function SprParser( buffer ) {
 	this.frames = [];
 	this.bitmaps = [];
 	
+	this._atlasProcessed = false;
+	this._atlasDataTexture = null;
+	
 	this.parseStructure( buffer );
 	
 	/** save buffer for now... */
@@ -189,6 +192,41 @@ SprParser.prototype.getAtlasUvs = function( id, frame_is_rgba ) {
 	
 };
 
+// requires three.js
+SprParser.prototype.getAtlasTextureThreeJs = function() {
+	
+	if(this._atlasProcessed) {
+		return this._atlasDataTexture;
+	}
+	
+	var atlasDataObject = this.getAtlasTextureRgba();
+	
+	this._atlasDataTexture = new THREE.DataTexture(
+		atlasDataObject.data, 
+		atlasDataObject.width, 
+		atlasDataObject.height, 
+		THREE.RGBAFormat,
+		THREE.UnsignedByteType,
+		{},
+		THREE.ClampToEdgeWrapping, 
+		THREE.ClampToEdgeWrapping, 
+		THREE.LinearFilter, 
+		THREE.LinearFilter
+	);
+	
+	this._atlasDataTexture.needsUpdate = true;
+	
+	this._atlasProcessed = true;
+	
+	return this._atlasDataTexture;
+	
+};
+
+SprParser.prototype.freeAtlasTextureThreeJs = function() {
+	this._atlasProcessed = false;
+	this._atlasDataTexture = null;
+};
+
 SprParser.prototype.atlasDefaultWidth = 512;
 SprParser.prototype.atlasDefaultHeight = 512;
 
@@ -243,6 +281,10 @@ SprParser.prototype.getAtlasTextureRgba = function(overrideSize) {
 		height = Math.ceil( expectedArea / width );
 	}
 	
+	// Minimum dimensions
+	width = Math.max(width, 32);
+	height = Math.max(height, 32);
+	
 	var atlas = new Uint8Array( 4 * width * height );
 	
 	var lastX = 0;
@@ -261,7 +303,7 @@ SprParser.prototype.getAtlasTextureRgba = function(overrideSize) {
 		}
 		
 		if( ( lastY + frame.height ) > height ) {
-			console.log("Not enough room to make atlas texture! Trying again...");
+			console.log("Not enough room to make atlas texture! Trying again...", width, height);
 			return this.getAtlasTextureRgba(2 * expectedArea);
 		}
 		

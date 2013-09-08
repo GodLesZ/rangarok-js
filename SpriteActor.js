@@ -1,5 +1,7 @@
 var SpriteActor = function(mapInstance, name) {
 	
+	EventHandler.call(this);
+	
 	this.mapInstance = mapInstance;
 	
 	this.attachments = {};
@@ -43,6 +45,8 @@ var SpriteActor = function(mapInstance, name) {
 	
 	
 };
+
+SpriteActor.prototype = Object.create(EventHandler.prototype);
 
 SpriteActor.CSpriteScale = 0.54857;
 
@@ -151,7 +155,12 @@ SpriteActor.prototype.__defineSetter__("isMoving", function(value) {
 SpriteActor.prototype.__defineSetter__("gatPosition", function(value) {
 	this.mapInstance.updateEntityGatPosition(this, value.x, value.y, this._gatPosition.x, this._gatPosition.y);
 	this._gatPosition = value;
+	
 	this.position.copy(this.gatToMapPosition(this._gatPosition));
+	
+	this._fireEvent("OnGatPositionChange", this.gatPosition);
+	
+	
 	//this.lightLevel = 0.5 + 0.5 * this.mapInstance.getGatTileLightLevel(this._gatPosition.x, this._gatPosition.y);
 	this.lightLevel = this.mapInstance.getGatTileLightLevel(this._gatPosition.x, this._gatPosition.y);
 });
@@ -163,7 +172,11 @@ SpriteActor.prototype.__defineGetter__("gatPosition", function() {
 
 SpriteActor.prototype.SetGatPosition = function(x, y) {
 	
-	this.CancelMove();
+	if(this.isMoving) {
+		// 
+		this.isMoving = false;	
+	}
+	
 	this.gatPosition = new THREE.Vector2(x, y);
 };
 
@@ -198,7 +211,7 @@ SpriteActor.prototype.MoveToGatPosition = function(x, y) {
 		// Remove 
 		path.splice(0, 1);
 		this.movementPath = path;
-		this.setDirectionGatNodeChange(this.gatPosition, this.movementPath[0]);	
+		this.Direction = this.getDirectionChange(this.gatPosition, this.movementPath[0]);
 		return true;
 	}
 	
@@ -207,41 +220,106 @@ SpriteActor.prototype.MoveToGatPosition = function(x, y) {
 };
 
 // Set direction from change of GAT nodes
-SpriteActor.prototype.setDirectionGatNodeChange = function(v1, v2) {
-
-	if(v2.x > v1.x) {
+SpriteActor.prototype.getDirectionChange = function(srcNode, dstNode) {
+	
+	var dir = 0;
+	
+	if(dstNode.x > srcNode.x) {
 		// EAST
-		if(v2.y > v1.y) {
-			this.Direction = SpriteActor.Directions.NORTH_EAST;
-		} else if(v2.y < v1.y) {
-			this.Direction = SpriteActor.Directions.SOUTH_EAST;
+		if(dstNode.y > srcNode.y) {
+			dir = SpriteActor.Directions.NORTH_EAST;
+		} else if(dstNode.y < srcNode.y) {
+			dir = SpriteActor.Directions.SOUTH_EAST;
 		} else {
-			this.Direction = SpriteActor.Directions.EAST;
+			dir = SpriteActor.Directions.EAST;
 		}
-	} else if(v2.x == v1.x) {
+	} else if(dstNode.x == srcNode.x) {
 		// UP, DOWN
-		if(v2.y > v1.y) {
-			this.Direction = SpriteActor.Directions.NORTH;
-		} else if(v2.y < v1.y) {
-			this.Direction = SpriteActor.Directions.SOUTH;
+		if(dstNode.y > srcNode.y) {
+			dir = SpriteActor.Directions.NORTH;
+		} else if(dstNode.y < srcNode.y) {
+			dir = SpriteActor.Directions.SOUTH;
 		}
 	} else {
 		// WEST
-		if(v2.y > v1.y) {
-			this.Direction = SpriteActor.Directions.NORTH_WEST;
-		} else if(v2.y < v1.y) {
-			this.Direction = SpriteActor.Directions.SOUTH_WEST;
+		if(dstNode.y > srcNode.y) {
+			dir = SpriteActor.Directions.NORTH_WEST;
+		} else if(dstNode.y < srcNode.y) {
+			dir = SpriteActor.Directions.SOUTH_WEST;
 		} else {
-			this.Direction = SpriteActor.Directions.WEST;
+			dir = SpriteActor.Directions.WEST;
 		}
 	}
+	
+	return dir;
 
 }
 
-SpriteActor.prototype.gatToMapPosition = function(v0) {
-	var v = this.mapInstance.mapCoordinateToPosition2(v0.x + 0.5, v0.y - 1.5);
-	v.y = -this.mapInstance.gatFileObject.getBlockAvgDepth(this.gatPosition.x, this.gatPosition.y) + 0.5; // currentGatPosition
+/**
+ * Get the 3D scene position in the center of a GAT node
+ *
+ * @param {THREE.Vector2} position - GAT tile position
+ * @returns {THREE.Vector3} - Map position
+ *
+ */
+
+SpriteActor.prototype.gatToMapPosition = function( position ) {
+	
+	var v = this.mapInstance.mapCoordinateToPosition( position.x + 0.5, position.y + 0.5 );
+	
+	//v.y = -this.mapInstance.gatFileObject.getBlockAvgDepth(this.gatPosition.x, this.gatPosition.y) + 0.5; // currentGatPosition
+	
+	// Get height in the middle of the GAT cell
+	v.y = -this.mapInstance.subGatPositionToMapHeight( position.x, position.y, 0.5, 0.5 ) + 0.5;
+	
 	return v;
+};
+
+/**
+ * Get the 3D scene position in-betweeen to neighboring GAT nodes.
+ *
+ * @param {THREE.Vector2} srcPosition - Source GAT tile 
+ * @param {THREE.Vector2} dstPosition - Destination GAT tile
+ * @param {float} weight - Blending weight in range [0, 1].
+ * @returns {THREE.Vector3} - Map position
+ *
+ */
+SpriteActor.prototype.mixNodePositionsToMapCoordinate = function(srcPosition, dstPosition, weight) {
+	
+	var s = 0.5, t = 0.5; // Middle of cell
+	
+	s += ( dstPosition.x - srcPosition.x ) * weight;
+	t += ( dstPosition.y - srcPosition.y ) * weight;
+	
+	var targetPosition = srcPosition;
+	
+	if( s > 1.0 ) {
+		s -= 1;
+		targetPosition = dstPosition;
+	} else if( s < 0.0 ) {
+		s += 1;
+		targetPosition = dstPosition;
+	}
+	
+	if( t > 1.0 ) {
+		t -= 1;
+		targetPosition = dstPosition;
+	} else if( t < 0.0 ) {
+		t += 1;
+		targetPosition = dstPosition;
+	}
+	
+	var height = -this.mapInstance.subGatPositionToMapHeight(targetPosition.x, targetPosition.y, s, t) + 0.5;
+	
+	var srcCoord = this.gatToMapPosition( srcPosition );
+	var dstCoord = this.gatToMapPosition( dstPosition );
+	
+	var finalCoord = dstCoord.sub( srcCoord ).multiplyScalar( weight ).add( srcCoord );
+	
+	finalCoord.y = height;
+	
+	return finalCoord;
+	
 };
 
 SpriteActor.prototype.UpdatePosition = function() {
@@ -284,41 +362,19 @@ SpriteActor.prototype.UpdatePosition = function() {
 				}
 				
 				nNode = this.movementPath[0] || this.gatPosition;
-				/* Set walking direction */
-				this.setDirectionGatNodeChange(this.gatPosition, nNode);
 				
+				// Change direction
+				if(nNode !== this.gatPosition) {
+					this.Direction = this.getDirectionChange( this.gatPosition, nNode );
+				}
 				
 			}
-						
-			var currentGatPosition = this.gatToMapPosition(this.gatPosition);
-			var nextGatPosition = this.gatToMapPosition(nNode);
 			
-			
-			//if(diff2.length > diff.length) {
-			//	currentGatPosition = this.position;
-			//}
-			
+			// Get position between GAT nodes
 			
 			var d = this.movementTime / this.movementSpeed;
 			
-			var dispPos = nextGatPosition.clone().sub(currentGatPosition).multiplyScalar(d).add(currentGatPosition);
-			
-			//var diff2 = nextGatPosition.clone().sub(this.position);
-			//var diff3 = nextGatPosition.clone().sub(dispPos);
-			
-			//if(diff2.lengthSq() < diff3.lengthSq()) {
-			//	console.log("Distance2");
-			//	this.position.x = this.position.x + d * (nextGatPosition.x - this.position.x);
-			//	this.position.y = this.position.y + d * (nextGatPosition.y - this.position.y);
-			//	this.position.z = this.position.z + d * (nextGatPosition.z - this.position.z);
-			//} else {
-				this.position.copy(dispPos);
-				//this.position.x = currentGatPosition.x + d * (nextGatPosition.x - currentGatPosition.x);
-				//this.position.y = currentGatPosition.y + d * (nextGatPosition.y - currentGatPosition.y);
-				//this.position.z = currentGatPosition.z + d * (nextGatPosition.z - currentGatPosition.z);			
-			//}
-			
-						
+			this.position.copy( this.mixNodePositionsToMapCoordinate(this.gatPosition, nNode, d) );
 			
 		}
 		
@@ -705,17 +761,24 @@ SpriteActor.prototype.UpdateAttachment = function(deltaTime, attachmentType, mot
 	
 	// Check if we can update the current frame
 	
-	var delay = 0;
+	var delay = 1;
+	
+	// if attacking, use aMotion
+	// if walking, use aMotion or speed?
 	
 	if(this.action == SpriteActor.Actions.WALK) {
-		delay = this.movementSpeed / actFileObject.delays[this.motion];
+		delay = this.movementSpeed / actFileObject.delays[motion];
 	} else {
-		delay = actFileObject.delays[this.motion] * 25;
+		delay = actFileObject.delays[motion] * 25;
 	}
 	
-	while(attachment.timeElapsed >= delay) {
-		attachment.frameId = (attachment.frameId + 1) % actFileObject.actions[this.motion].length;
+	delay = Math.max(1, delay);
+	
+	if(attachment.timeElapsed >= delay) {
+		
+		attachment.frameId = (attachment.frameId + 1) % actFileObject.actions[motion].length;
 		attachment.timeElapsed = attachment.timeElapsed % delay;
+		
 	}
 	
 };
@@ -743,8 +806,8 @@ SpriteActor.prototype.Update = function(camera) {
 	
 	// Through a convoluted process, update the direction from camera
 	
-	var cameraX = camera.position.x - camera.centerPosition.x;
-	var cameraZ = camera.position.z - camera.centerPosition.z;
+	var cameraX = camera.position.x - camera.target.x;
+	var cameraZ = camera.position.z - camera.target.z;
 	
 	var angle = Math.atan2(-cameraZ, cameraX) * 360 / (2 * Math.PI);
 	
@@ -830,15 +893,10 @@ SpriteActor.prototype.Update = function(camera) {
 		}
 	};
 	
-	var a;
-	
 	if(this.displayMessageSprite instanceof THREE.Sprite) {
 		
-		a = this.displayMessageSprite.material.alignment;
+		this.alignMessageSprite();
 		
-		a.y = SpriteActor.CMessageBoxAlignmentY / (this.mapInstance.cShift);
-		a.y += 20 * a.y * (0.03 - this.displayMessageSprite.scale.y);
-				
 		if(Date.now() - this.displayMessageCreationTime > SpriteActor.CMessageDuration) {
 			this.removeDisplayMessageLabel();
 		}
@@ -846,16 +904,7 @@ SpriteActor.prototype.Update = function(camera) {
 	}
 	
 	if(this.nameLabelSprite instanceof THREE.Sprite && this.nameLabelSprite.visible) {
-		
-		/*if(Date.now() - this.nameLabelCreationTime > SpriteActor.CLabelTimeout) {
-			this.hideNameLabel();
-		}*/
-		
-		a = this.nameLabelSprite.material.alignment;
-		
-		a.y = SpriteActor.CLabelAlignmentY / (this.mapInstance.cShift);
-		a.y += 10 * a.y * (0.03 - this.nameLabelSprite.scale.y);
-		
+		this.alignNameLabelSprite();
 	}
 		
 	this.lastUpdate = Date.now();
@@ -881,6 +930,22 @@ SpriteActor.CLabelColorPlayer = new THREE.Color(0xffffff);
 SpriteActor.CLabelColorNPC = new THREE.Color(0x94bdf7);
 SpriteActor.CLabelColorMonster = new THREE.Color(0x9c9c9c);
 SpriteActor.CLabelOutlineColor = new THREE.Color(0x000000);
+
+SpriteActor.prototype.alignMessageSprite = function() {
+	
+	var a = this.displayMessageSprite.material.alignment;
+		
+	a.y = SpriteActor.CMessageBoxAlignmentY / ( this.mapInstance.controls.zoom ); // ! todo: increase cohesion
+	a.y += 20 * a.y * (0.03 - this.displayMessageSprite.scale.y);
+};
+
+SpriteActor.prototype.alignNameLabelSprite = function() {
+	
+	var a = this.nameLabelSprite.material.alignment;
+		
+	a.y = SpriteActor.CLabelAlignmentY / ( this.mapInstance.controls.zoom ); // ! todo: increase cohesion
+	a.y += 10 * a.y * (0.03 - this.nameLabelSprite.scale.y);
+};
 
 SpriteActor.prototype.generateNameLabel = function() {
 	
@@ -981,6 +1046,7 @@ SpriteActor.prototype.showNameLabel = function() {
 	if(!this._nameLabelGenerated)
 		this.generateNameLabel();
 	
+	this.alignNameLabelSprite();
 	this.nameLabelSprite.visible = true;
 };
 

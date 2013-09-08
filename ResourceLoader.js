@@ -27,13 +27,13 @@ ResourceLoader.init = function() {
 			window.TEMPORARY, 
 			(1024 + 512) * 1024 * 1024, // 1.5GB
 			function(fs) {
-				console.log("Using file system API");
+				console.log("Info: File system API seems to be available");
 				ResourceLoader.useFileSystem = true;
 				ResourceLoader.fs = fs;
 				ResourceLoader.ready.success(true);
 			},
 			function() {
-				console.warn("File system API not available");
+				console.warn("Info: File system API not available");
 				ResourceLoader.ready.success(false);
 			}
 		);

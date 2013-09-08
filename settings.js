@@ -4,11 +4,12 @@ var Settings = {
 	loginHost: '127.0.0.1',
 	loginPort: 6900,
 	
-	DEBUG: true,
+	music: true,
 	
 	fontSize: 12,
 	fontFamily: "Tahoma",
 	
-	standAlone: true
+	desktop: false,
+	DEBUG: true,
 
 };

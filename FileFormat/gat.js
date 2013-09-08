@@ -36,7 +36,14 @@ function GAT( buffer ) {
 	}
 		
 	this.hasProperty = function(x, y, property) {
-		return (GAT.BlockTypes[this.getBlock(x, y).type] & property) != 0;
+	
+		var block = this.getBlock(x, y);
+		
+		if(block === undefined || block === null) {
+			return false;
+		}
+	
+		return (GAT.BlockTypes[block.type] & property) != 0;
 	};
 	
 	this.parseFormat = function() {

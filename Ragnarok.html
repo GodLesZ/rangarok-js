@@ -1,46 +1,74 @@
+<script src="Tables/VarEnum.js"></script>
+
+<!-- Commons -->
+		
 <script src="common.js"></script>
-<!--<script src="polyfill.js"></script>-->
 <script src="prototype.js"></script>
+<script src="Deferred.js"></script>
 
 <script src="settings.js"></script>
 
+<!-- Tables -->
+
 <script src="Tables/VarEnum.js"></script>
+<script src="Tables/mp3nametable.js"></script>
+<script src="Tables/fogparametertable.js"></script>
 <script src="Tables/ClassResNameTable.js"></script>
+<script src="Tables/pcjobtable.js"></script>
 <script src="Tables/AccessoryIdTable.js"></script>
 <script src="Tables/AccessoryNameTable.js"></script>
 <script src="Tables/HeadIdTable.js"></script>
 
-<!--<script src="FileFormat/SprParser.js"></script>
-<script src="FileFormat/ActParser.js"></script>-->
+<!-- File formats -->
 
 <script src="FileFormat/rsm.js"></script>
 <script src="FileFormat/gat.js"></script>
 <script src="FileFormat/gnd.js"></script>
 <script src="FileFormat/rsw.js"></script>
-<script src="FileFormat/sprparser.js"></script>
-<script src="FileFormat/actparser.js"></script>
+<script src="FileFormat/SprParser.js"></script>
+<script src="FileFormat/ActParser.js"></script>
 
-<script src="include/three.58.js"></script>
-<script src="include/ReusableRay.js"></script>
-<script src="include/CustomControls.js"></script>
-
-<script src="Deferred.js"></script>
+<!-- Helpers -->
 
 <script src="ResourceLoader.js"></script>
-<script src="MapLoader.js"></script>
-<script src="SpriteActor.js"></script>
+
+<!-- Input -->
+
+<script src="InputEventHandler.js"></script>
+
+<!-- Interface -->
 
 <script src="Interface/InterfaceCommons.js"></script>
+
 <script src="Interface/InterfaceComponent.js"></script>
-<script src="Interface/DOMTextInput.js"></script>
-<script src="Interface/CanvasTextfield.js"></script>
+<script src="Interface/BaseWindow.js"></script>
+
 <script src="Interface/SelectionList.js"></script>
 <script src="Interface/InputButton.js"></script>
-<script src="Interface/BaseWindow.js"></script>
+
+<script src="Interface/CanvasTextfield.js"></script>
+<script src="Interface/DOMTextInput.js"></script>
 
 <script src="WindowObjects.js"></script>
 
 <script src="InterfaceManager.js"></script>
+
+
+<!-- Sound -->
+
+<script src="SoundPlayer.js"></script>
+
+<!-- 3D -->
+
+<script src="graphics/include/BoundingBox.js"></script>
+<script src="include/three.58.js"></script>
+<script src="RagnarokControls.js"></script>
+
+<script src="MapLoader.js"></script>
+
+<script src="SpriteActor.js"></script>
+
+<!-- Network -->
 
 <script src="PacketLengthTable.js"></script>
 <script src="PacketParser.js"></script>
@@ -57,49 +85,8 @@
 
 <script src="GameManager.js"></script>
 
-<style>
 
-* {
-	cursor: default;
-}
-
-#ro-text-container {
-	position: fixed;
-	top: 0;
-	left: 0;
-	-webkit-tap-highlight-color: rgba(255, 255, 255, 0);
-	background: red;
-	z-index: 15;
-	
-	user-select: none;
-	-webkit-user-select: none;
-	-moz-user-select: none;
-}
-
-input.roDomTextInput {
-	/*border: solid 1px blue;*/
-	background: transparent;
-	border: 0;
-	padding: 0;
-	margin: 0;
-	position: fixed;
-	z-index: 15;
-}
-
-input.roDomTextInput:focus {
-	outline: 0;
-}
-
-
-/* Graphics container styles */
-
-canvas {
-	position: fixed;
-	top: 0;
-	left: 0;
-}
-
-</style>
+<link rel="stylesheet" type="text/css" href="Ragnarok.css" />
 
 <script>
 
@@ -114,7 +101,7 @@ window.onload = (function() {
 		
 		document.body.appendChild( ro_text_container );
 		
-		(new Ragnarok()).init();
+		(new Ragnarok( document )).init();
 		
 		//document.body.appendChild( ragnarok.scene.domElement );
 		document.body.appendChild(Ragnarok.Instance.gui.domElement );
