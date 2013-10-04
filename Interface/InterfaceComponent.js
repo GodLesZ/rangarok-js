@@ -1,14 +1,19 @@
-// The most basic component in the interface
-// Implements simple behaviour for graphics and events, and contains all
-// the methods and member objects expected of any display component
-
+/**
+ * The most basic component in the interface.
+ * Implements simple behaviour for graphics and events, and contains all
+ * the methods and member objects expected of any display component
+ *
+ * @param width
+ * @param height
+ * @constructor
+ */
 function InterfaceComponent( width, height ) {
 	
 	this.width = width;
 	this.height = height;
 	
 	this.color = 0xff00ff;
-	this.alphaColor = 1.0;
+	this.colorAlpha = 1.0;
 	
 	this.opacity = 1.0;
 	
@@ -26,7 +31,7 @@ function InterfaceComponent( width, height ) {
 	
 	this.__listeners = [];
 	
-};
+}
 
 InterfaceComponent.prototype = {};
 
@@ -75,29 +80,22 @@ InterfaceComponent.prototype.draw = function( context, sx, sy ) {
 		
 		} else {
 
-			context.drawImage(
-				this.__bitmaps[ this.__bitmapIndex ],
-				sx, sy,
-				this.width, this.height
-			);
+			context.drawImage( this.__bitmaps[ this.__bitmapIndex ], sx, sy, this.width, this.height );
 		
 		}
 		
 	
-	} else if(this.alphaColor != 0) {
+	} else if(this.colorAlpha != 0) {
 		
 		context.fillStyle = this.color.toString(16);
 		
-		if(this.alphaColor != 1)
-			this.globalAlpha *= this.alphaColor;
+		if(this.colorAlpha != 1)
+			this.globalAlpha *= this.colorAlpha;
 		
-		context.fillRect(
-			sx, sy,
-			this.width, this.height
-		);
+		context.fillRect( sx, sy, this.width, this.height );
 		
-		if(this.alphaColor != 1)
-			this.globalAlpha /= this.alphaColor;
+		if(this.colorAlpha != 1)
+			this.globalAlpha /= this.colorAlpha;
 	
 	}
 	
@@ -186,9 +184,9 @@ InterfaceComponent.prototype.addBitmap = function( uri, index ) {
 };
 
 InterfaceComponent.prototype.setInterface = function( handler ) {
-	
+
 	this.__interface = handler;
-	
+
 };
 
 InterfaceComponent.prototype.__destroy = function() {};
@@ -217,7 +215,7 @@ InterfaceComponent.prototype.fireEvent = function( obj ) {
 		
 	}
 	
-}
+};
 
 InterfaceComponent.prototype.onInputDown = function() {};
 InterfaceComponent.prototype.onInputUp = function() {};

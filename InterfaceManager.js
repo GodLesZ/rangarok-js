@@ -1,4 +1,4 @@
-InputType = {
+var InputType = {
 	ButtonLeft: 0,
 	ButtonMiddle: 1,
 	ButtonRight: 2,
@@ -9,7 +9,6 @@ InputType = {
 function InterfaceManager( document ) {
 	
 	this.domElement = document.createElement('canvas');
-	
 	this.domElement.style.zIndex = 10;
 	
 	this.context = this.domElement.getContext('2d');
@@ -30,7 +29,7 @@ function InterfaceManager( document ) {
 	this.mouseUpEvent = this.OnMouseUp.bind( this );
 	this.mouseMoveEvent = this.OnMouseMove.bind( this );
 	
-};
+}
 
 InterfaceManager.InterfaceWindowObjects = {
 	0: LoginWindow,
@@ -102,6 +101,9 @@ InterfaceManager.prototype.init = function() {
 	
 };
 
+/**
+ * @param [clear]
+ */
 InterfaceManager.prototype.refresh = function( clear ) {
 	
 	clear = true;
@@ -187,6 +189,14 @@ InterfaceManager.prototype.create = function( id ) {
 	return new InterfaceManager.InterfaceWindowObjects[id];
 };
 
+/**
+ *
+ * @param {InterfaceComponent} window
+ * @param sx
+ * @param sy
+ * @param [adjustX]
+ * @param [adjustY]
+ */
 InterfaceManager.prototype.add = function( window, sx, sy, adjustX, adjustY ) {
 	
 	window.setInterface( this );

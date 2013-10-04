@@ -33,7 +33,7 @@ function LoginWindow() {
 	this.addComponent( this.userTextField, '95px', '31px' );
 	this.addComponent( this.passwordTextField, '95px', '63px' );
 	
-};
+}
 
 LoginWindow.prototype = Object.create( BaseWindow.prototype );
 
@@ -81,7 +81,7 @@ function ServiceWindow() {
 	
 	this.addComponent( this.list, InterfaceAlignment.Center, '25px' );
 	
-};
+}
 
 ServiceWindow.prototype = Object.create( BaseWindow.prototype );
 
@@ -488,11 +488,7 @@ CharacterSelectWindow.prototype.draw = function( context, sx, sy ) {
 		
 		var selected_position = this.__slotPos[ this.__slot % 3 ];
 		
-		context.drawImage(
-			this.__bitmaps[1],
-			sx + selected_position[0],
-			sy + selected_position[1]
-		);
+		context.drawImage( this.__bitmaps[1], sx + selected_position[0], sy + selected_position[1] );
 	
 	}
 
@@ -500,15 +496,15 @@ CharacterSelectWindow.prototype.draw = function( context, sx, sy ) {
 
 CharacterSelectWindow.prototype.addCharacter = function( charInfo ) {
 	
-	var roChar = new RagnarokCharacterComponent( charInfo );
+	var charComp = new RagnarokCharacterComponent( charInfo );
 	
-	roChar.__visible = false;
-	roChar.addListener( this );
+	charComp.__visible = false;
+	charComp.addListener( this );
 	
 	var pos = this.__slotPos[ charInfo.CharNum % 3 ];
 	
-	this.__charComponents[ charInfo.CharNum ] = roChar;
-	this.addComponent( roChar, null, null, pos[0], pos[1] );
+	this.__charComponents[ charInfo.CharNum ] = charComp;
+	this.addComponent( charComp, null, null, pos[0], pos[1] );
 	
 	this.refresh();
 	
@@ -545,8 +541,8 @@ var ChatWindow = function() {
 
 	BaseWindow.call( this, 600, 195);
 
-	this.lines = Array(10);
-	this.alphaColor = 0.0;
+	this.lines = new Array(10);
+	this.colorAlpha = 0.0;
 	this.addBitmap('basic_interface/dialog_bg.gif', 1);
 
 	this.history = [];

@@ -1,7 +1,14 @@
+/**
+ *
+ * @param [fn]
+ * @returns {*}
+ * @constructor
+ */
 var Deferred = function(fn) {
 	
-	if(!(this instanceof Deferred))
+	if(!(this instanceof Deferred)) {
 		return (new Deferred).success();
+	}
 
 	this._state = Deferred.State.PENDING;
 	this.data = null;
@@ -36,9 +43,9 @@ Deferred.prototype.__defineGetter__('state', function() {
 Deferred.prototype.resolveChild = function() {
 	this.n_resolved++;
 	this.tryFinalize();
-}
+};
 
-Deferred.prototype.tryFinalize = function(n) {
+Deferred.prototype.tryFinalize = function() {
 	
 	if(this.finalized)
 		return;
@@ -80,7 +87,7 @@ Deferred.prototype.finally = function(action) {
 		} else {
 			p.success(action);
 		}
-	}
+	};
 	
 	this.tryFinalize();
 	
@@ -131,12 +138,22 @@ Deferred.prototype.onload = function(fn) {
 	return p;
 };
 
+/**
+ *
+ * @param [data]
+ * @returns {Deferred}
+ */
 Deferred.prototype.success = function(data) {
 	this.data = data;
 	this.state = Deferred.State.SUCCESS;
 	return this;
 };
 
+/**
+ *
+ * @param [err]
+ * @returns {Deferred}
+ */
 Deferred.prototype.error = function(err) {
 	this.error = err;
 	this.state = Deferred.State.ERROR;

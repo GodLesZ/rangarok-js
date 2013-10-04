@@ -29,7 +29,7 @@ function Ragnarok( document ) {
 	//	head: 10000
 	//});
 	
-};
+}
 
 Ragnarok.Instance = null;
 
@@ -50,18 +50,7 @@ Ragnarok.prototype.init = function() {
 	this.input.attachEventListener("mousemove", this.gui.mouseMoveEvent );
 	this.input.attachEventListener("mouseup", this.gui.mouseUpEvent );
 	this.input.attachEventListener("mousedown", this.gui.mouseDownEvent );
-	
-	/*
-	this.chatWindow = this.gui.create( Interface.ChatWindow );
-	
-	this.chatWindow.onEvent = (function(str) {
-		if(str)
-			this.chatWindow.writeLine(str);
-	}).bind(this);
-	
-	this.gui.add(this.chatWindow, InterfaceAlignment.Left, InterfaceAlignment.Bottom);
-	*/
-	
+
 	this.onStateLoginReady();
 	
 };
@@ -70,7 +59,7 @@ Ragnarok.prototype.playerRequestMove = function(gatPosition) {
 	console.log("Requested move to", gatPosition);
 	
 	//if player not dead .. etc {
-	
+
 	//this.PCActor.findPath();
 	
 	this.network.requestMove(gatPosition.x, gatPosition.y, 0);
@@ -103,11 +92,12 @@ Ragnarok.prototype.CreateAttachment = function(obj, n, ttype) {
 		
 	});
 
-}
+};
 
 // Called when map name is received from zone server
 Ragnarok.prototype.onStateLoadMap = function() {
-	
+
+	var ragnarok = this;
 	console.log('Map accepted us, now we need to load the map');
 	console.log(this.network.session.mapName.toString());
 	
@@ -120,39 +110,39 @@ Ragnarok.prototype.onStateLoadMap = function() {
 	
 	this.scene.loadMap(this.network.session.mapName.toString().replace(/gat$/, "rsw"))
 		.then((function() {
-			
-			this.scene.start(); 
+
+			ragnarok.scene.start();
 						
-			var bodyRes = FileManager.getClassBodyResPath(this.network.session.pc.charInfo.job, this.network.session.pc.charInfo.Sex);
-			var headRes = FileManager.getHeadResPath(this.network.session.pc.charInfo.head, this.network.session.pc.charInfo.Sex);
+			var bodyRes = FileManager.getClassBodyResPath(ragnarok.network.session.pc.charInfo.job, ragnarok.network.session.pc.charInfo.Sex);
+			var headRes = FileManager.getHeadResPath(ragnarok.network.session.pc.charInfo.head, ragnarok.network.session.pc.charInfo.Sex);
 			
 			Deferred()
-				.then(this.CreateAttachment.bind(this, this.PCActor, bodyRes, SpriteActor.Attachment.BODY))
-				.then(this.CreateAttachment.bind(this, this.PCActor, headRes, SpriteActor.Attachment.HEAD))
+				.then(ragnarok.CreateAttachment.bind(this, ragnarok.PCActor, bodyRes, SpriteActor.Attachment.BODY))
+				.then(ragnarok.CreateAttachment.bind(this, ragnarok.PCActor, headRes, SpriteActor.Attachment.HEAD))
 				.then((function() {
-					
-					this.PCActor.SetGatPosition(
-						this.network.session.GetPCStatus(VarEnum.VAR_CURXPOS),
-						this.network.session.GetPCStatus(VarEnum.VAR_CURYPOS)
+
+					ragnarok.PCActor.SetGatPosition(
+						ragnarok.network.session.GetPCStatus(VarEnum.VAR_CURXPOS),
+						ragnarok.network.session.GetPCStatus(VarEnum.VAR_CURYPOS)
 					);
-					
-					this.PCActor.Direction = this.network.session.GetPCStatus(VarEnum.VAR_CURDIR);
+
+					ragnarok.PCActor.Direction = ragnarok.network.session.GetPCStatus(VarEnum.VAR_CURDIR);
 					
 					setInterval((function() {
-						this.PCActor.Update(this.scene.camera);
-					}).bind(this), 10);
+						ragnarok.PCActor.Update(ragnarok.scene.camera);
+					}).bind(ragnarok), 10);
+
+					ragnarok.scene.bindCamera(ragnarok.PCActor);
+
+					ragnarok.scene.attachEventListener("OnPCRequestMove", ragnarok.playerRequestMove.bind(this));
 					
-					this.scene.bindCamera(this.PCActor);
-					
-					this.scene.attachEventListener("OnPCRequestMove", this.playerRequestMove.bind(this));
-					
-				}).bind(this));
+				}).bind(ragnarok));
 			
-		}).bind(this))
-		.then((function() { 
-			this.gui.clearBackground();
-			this.network.reportMapLoaded(); 
-		}).bind(this));
+		}).bind(ragnarok))
+		.then((function() {
+			ragnarok.gui.clearBackground();
+			ragnarok.network.reportMapLoaded();
+		}).bind(ragnarok));
 	
 };
 
@@ -178,7 +168,7 @@ Ragnarok.prototype.onStateCharacterSelected = function( charId ) {
 	
 	this.network.selectCharacter( charId );
 	
-}
+};
 
 // Called when client is ready to list characters
 Ragnarok.prototype.onStateCharSelect = function() {
@@ -248,7 +238,7 @@ Ragnarok.prototype.onStateServiceSelected = function( serverId ) {
 
 	this.network.selectService( serverId );
 
-}
+};
 
 // Called when client receives the server list
 Ragnarok.prototype.onStateServiceSelectReady = function() {
@@ -295,7 +285,7 @@ Ragnarok.prototype.onStateServiceSelectReady = function() {
 		InterfaceAlignment.Center
 	);
 	
-}
+};
 
 // Called when user has requested login through interface
 Ragnarok.prototype.onStateDoLogin = function( username, password) {
@@ -335,14 +325,11 @@ Ragnarok.prototype.onStateLoginReady = function() {
 				
 		if( event.action == Interface.Button.Login ) {
 			
-			// TODO: validate input
+			// @TODO: validate input
 			
 			this.gui.remove( event.window );
 			
-			this.onStateDoLogin(
-				event.username, 
-				event.password
-			);
+			this.onStateDoLogin( event.username, event.password );
 			
 		} else if( event.action == Interface.Button.Exit ) {
 			// Do nothing for now...
@@ -359,4 +346,4 @@ Ragnarok.prototype.onStateLoginReady = function() {
 		InterfaceAlignment.Center
 	);
 	
-}
+};

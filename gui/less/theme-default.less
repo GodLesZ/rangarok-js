@@ -1,0 +1,245 @@
+/********************************************
+ * Aims to be an exact copy of the Ragnarok
+ * default theme
+ *
+ * @class theme-default
+ ********************************************/
+
+
+
+label {
+	color: #5A6F99;
+	font-family: "Arial Black", sans-serif;
+}
+
+// Common classes
+
+.pull-left {
+	float: left;
+}
+
+.pull-right {
+	float: right;
+}
+
+.clearfix {
+	*zoom: 1;
+
+	&:before, &:after {
+		display: table;
+		line-height: 0;
+		content: "";
+	}
+
+	&:after {
+		clear: both;
+	}
+}
+
+.hide-text {
+	font: 0/0 a;
+	color: transparent;
+	text-shadow: none;
+	background-color: transparent;
+	border: 0;
+}
+
+// @start Namespace
+.theme-default {
+	font-family: Arial, sans-serif;
+	font-size: 12px;
+
+	// Blue focus rectangle
+	input:focus, textarea:focus {
+		outline: 1px solid #8088B4;
+	}
+
+
+	/********************************************
+	 * Window
+	 ********************************************/
+	.window {
+		min-width: 200px;
+		min-height: 80px;
+		clear: both;
+
+		> .titlebar {
+			// 15 + 1 padding-top + 1 padding-bottom = 17
+			height: 15px;
+			background: #8294c8;
+			background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,#8294c8), color-stop(6%,#b3c1dd), color-stop(13%,#afbedd), color-stop(19%,#cad4e9), color-stop(25%,#b1c4e7), color-stop(31%,#b7c6e8), color-stop(38%,#99aed9), color-stop(44%,#a7bae2), color-stop(50%,#9eb6e4), color-stop(56%,#b8caf1), color-stop(63%,#afc4f0), color-stop(69%,#cadffb), color-stop(75%,#bed8f2), color-stop(81%,#dcf1fd), color-stop(88%,#c5def3), color-stop(94%,#d2eafc), color-stop(100%,#000000));
+			background: -webkit-linear-gradient(top, #8294c8 0%,#b3c1dd 6%,#afbedd 13%,#cad4e9 19%,#b1c4e7 25%,#b7c6e8 31%,#99aed9 38%,#a7bae2 44%,#9eb6e4 50%,#b8caf1 56%,#afc4f0 63%,#cadffb 69%,#bed8f2 75%,#dcf1fd 81%,#c5def3 88%,#d2eafc 94%,#000000 100%);
+			background: linear-gradient(to bottom, #8294c8 0%,#b3c1dd 6%,#afbedd 13%,#cad4e9 19%,#b1c4e7 25%,#b7c6e8 31%,#99aed9 38%,#a7bae2 44%,#9eb6e4 50%,#b8caf1 56%,#afc4f0 63%,#cadffb 69%,#bed8f2 75%,#dcf1fd 81%,#c5def3 88%,#d2eafc 94%,#000000 100%);
+			border-top-right-radius: 3px;
+			border-top-left-radius: 3px;
+			color: #000;
+			text-shadow: 1px 1px 0 #FFF;
+			padding: 1px 0 1px 5px;
+			border-left: 1px solid #99AEDA;
+			border-right: 1px solid #99AEDA;
+		}
+
+		> .body {
+
+			border-color: #C2C2C2;
+			border-style: solid;
+			border-width: 0 1px 1px 1px;
+		}
+
+		> .footer {
+
+			border-color: #C2C2C2;
+			border-style: solid;
+			border-width: 0 1px 1px 1px;
+			border-bottom-right-radius: 3px;
+			border-bottom-left-radius: 3px;
+			height: 26px;
+
+			background: #ffffff;
+			background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,#ffffff), color-stop(4%,#ffffff), color-stop(8%,#f2f2f2), color-stop(12%,#f2f2f2), color-stop(16%,#ffffff), color-stop(20%,#ffffff), color-stop(24%,#f2f2f2), color-stop(28%,#f2f2f2), color-stop(32%,#ffffff), color-stop(36%,#ffffff), color-stop(40%,#f2f2f2), color-stop(44%,#f2f2f2), color-stop(48%,#ffffff), color-stop(52%,#ffffff), color-stop(56%,#f2f2f2), color-stop(60%,#f2f2f2), color-stop(64%,#ffffff), color-stop(68%,#ffffff), color-stop(72%,#f2f2f2), color-stop(76%,#f2f2f2), color-stop(80%,#ffffff), color-stop(84%,#ffffff), color-stop(88%,#f2f2f2), color-stop(92%,#f2f2f2), color-stop(96%,#ffffff), color-stop(100%,#ffffff));
+			background: -webkit-linear-gradient(top, #ffffff 0%,#ffffff 4%,#f2f2f2 8%,#f2f2f2 12%,#ffffff 16%,#ffffff 20%,#f2f2f2 24%,#f2f2f2 28%,#ffffff 32%,#ffffff 36%,#f2f2f2 40%,#f2f2f2 44%,#ffffff 48%,#ffffff 52%,#f2f2f2 56%,#f2f2f2 60%,#ffffff 64%,#ffffff 68%,#f2f2f2 72%,#f2f2f2 76%,#ffffff 80%,#ffffff 84%,#f2f2f2 88%,#f2f2f2 92%,#ffffff 96%,#ffffff 100%);
+			background: linear-gradient(to bottom, #ffffff 0%,#ffffff 4%,#f2f2f2 8%,#f2f2f2 12%,#ffffff 16%,#ffffff 20%,#f2f2f2 24%,#f2f2f2 28%,#ffffff 32%,#ffffff 36%,#f2f2f2 40%,#f2f2f2 44%,#ffffff 48%,#ffffff 52%,#f2f2f2 56%,#f2f2f2 60%,#ffffff 64%,#ffffff 68%,#f2f2f2 72%,#f2f2f2 76%,#ffffff 80%,#ffffff 84%,#f2f2f2 88%,#f2f2f2 92%,#ffffff 96%,#ffffff 100%);
+
+			.button {
+				margin-top: 3px;
+			}
+		}
+
+
+		/********************************************
+		 * Window w/ leading ball
+		 ********************************************/
+		&.window-w-ball {
+			> .titlebar {
+				padding-left: 4px;
+
+				&:before {
+					height: 17px;
+					width: 12px;
+					content: url("../themes/default/titlebar-left-ball.gif");
+				}
+			}
+		}
+
+	}
+
+
+
+	/********************************************
+	 * Buttons
+	 ********************************************/
+	.button {
+		height: 20px;
+		border: 1px solid #A9A9A9;
+		border-radius: 3px;
+		text-align: center;
+		text-shadow: 1px 1px 0 #C6C6C6;
+
+		background: #dedede;
+		background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,#dedede), color-stop(6%,#ededed), color-stop(12%,#efefef), color-stop(18%,#f0f0f0), color-stop(24%,#dbdbdb), color-stop(29%,#e7e7e7), color-stop(47%,#f2f2f2), color-stop(65%,#f9f9f9), color-stop(71%,#fefefe), color-stop(82%,#fefefe), color-stop(88%,#fcfcfc), color-stop(94%,#f7f7f7), color-stop(100%,#fbfbfb));
+		background: -webkit-linear-gradient(top, #dedede 0%,#ededed 6%,#efefef 12%,#f0f0f0 18%,#dbdbdb 24%,#e7e7e7 29%,#f2f2f2 47%,#f9f9f9 65%,#fefefe 71%,#fefefe 82%,#fcfcfc 88%,#f7f7f7 94%,#fbfbfb 100%);
+		background: linear-gradient(to bottom, #dedede 0%,#ededed 6%,#efefef 12%,#f0f0f0 18%,#dbdbdb 24%,#e7e7e7 29%,#f2f2f2 47%,#f9f9f9 65%,#fefefe 71%,#fefefe 82%,#fcfcfc 88%,#f7f7f7 94%,#fbfbfb 100%);
+
+
+		&:focus, &:hover {
+			text-shadow: 1px 1px 0 #FFFFFF;
+
+			background: #c6cddb;
+			background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,#c6cddb), color-stop(6%,#ccd6e9), color-stop(18%,#bcccea), color-stop(24%,#a4b5d5), color-stop(29%,#a9bce0), color-stop(35%,#a5bae3), color-stop(47%,#a5bce9), color-stop(65%,#aec5f1), color-stop(71%,#b4cbf7), color-stop(88%,#c7d8f7), color-stop(94%,#cddaf3), color-stop(100%,#dae4f7));
+			background: -webkit-linear-gradient(top, #c6cddb 0%,#ccd6e9 6%,#bcccea 18%,#a4b5d5 24%,#a9bce0 29%,#a5bae3 35%,#a5bce9 47%,#aec5f1 65%,#b4cbf7 71%,#c7d8f7 88%,#cddaf3 94%,#dae4f7 100%);
+			background: linear-gradient(to bottom, #c6cddb 0%,#ccd6e9 6%,#bcccea 18%,#a4b5d5 24%,#a9bce0 29%,#a5bae3 35%,#a5bce9 47%,#aec5f1 65%,#b4cbf7 71%,#c7d8f7 88%,#cddaf3 94%,#dae4f7 100%);
+		}
+
+		&:active, &:link {
+			text-shadow: 1px 1px 0 #C0C7D4;
+
+			background: #c6cddb;
+			background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,#c6cddb), color-stop(6%,#ccd6e9), color-stop(18%,#bcccea), color-stop(24%,#a4b5d5), color-stop(29%,#a9bce0), color-stop(35%,#a5bae3), color-stop(47%,#a5bce9), color-stop(65%,#aec5f1), color-stop(71%,#b4cbf7), color-stop(88%,#c7d8f7), color-stop(94%,#cddaf3), color-stop(100%,#dae4f7));
+			background: -webkit-linear-gradient(top, #c6cddb 0%,#ccd6e9 6%,#bcccea 18%,#a4b5d5 24%,#a9bce0 29%,#a5bae3 35%,#a5bce9 47%,#aec5f1 65%,#b4cbf7 71%,#c7d8f7 88%,#cddaf3 94%,#dae4f7 100%);
+			background: linear-gradient(to bottom, #c6cddb 0%,#ccd6e9 6%,#bcccea 18%,#a4b5d5 24%,#a9bce0 29%,#a5bae3 35%,#a5bce9 47%,#aec5f1 65%,#b4cbf7 71%,#c7d8f7 88%,#cddaf3 94%,#dae4f7 100%);
+		}
+
+	}
+
+
+
+
+
+	/********************************************
+	 * Specific components
+	 ********************************************/
+
+	// Window: Login
+	.window-login {
+		width: 280px;
+
+		.body {
+			height: 74px;
+		}
+
+		.inline-controls{
+			width: auto;
+			padding-top: 12px;
+			padding-bottom: 2px;
+
+			label {
+				text-align: right;
+				width: 35%;
+				margin-right: 10px;
+				display: inline-block;
+			}
+
+			input {
+				text-align: left;
+
+				// @TODO: Use this as general input design?
+				width: 125px;
+				height: 16px;
+				background-color: #F2F2F2;
+				border: 1px solid #C0C0C0;
+			}
+
+		}
+
+	}
+
+	// Window: Character select
+	.window-char-select, .window-char-create {
+		width: 576px;
+
+		.body {
+			height: 297px;
+			width: 574px;
+			background: #FFF url(../themes/default/win-character-selection-full.gif) 0 0 no-repeat scroll;
+		}
+
+	}
+
+	// Window: Character creation
+	.window-char-create {
+
+		.body {
+			background-image: url(../themes/default/win-character-creation.gif);
+			position: relative;
+
+			.input-label {
+				position: absolute;
+				top: 226px;
+				left: 10px;
+			}
+
+			.input {
+				position: absolute;
+				top: 226px;
+				left: 60px;
+				background-color: #F2F2F2;
+				border: 1px solid #C0C0C0;
+				width: 99px;
+				height: 16px;
+			}
+
+		}
+
+	}
+
+}
